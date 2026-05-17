@@ -173,22 +173,28 @@ function Card({ o, i, onPick }: { o: typeof OPTIONS[0]; i: number; onPick: () =>
           ? `linear-gradient(90deg,transparent,${o.border},transparent)`
           : 'rgba(255,255,255,.06)', marginBottom:12 }} />
 
-        {/* Bottom row: sub + ROI */}
+        {/* Bottom row: sub + CTA */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <div style={{ fontSize:12, color:'rgba(255,255,255,.42)',
             fontFamily:"'JetBrains Mono',monospace", letterSpacing:'.02em' }}>
             {o.sub}
           </div>
-          <div style={{ display:'flex', alignItems:'center', gap:5,
-            background:'rgba(167,139,250,.08)', border:'1px solid rgba(139,92,246,.2)',
-            borderRadius:20, padding:'4px 10px' }}>
-            <div style={{ width:5, height:5, borderRadius:'50%',
-              background:'#A78BFA', boxShadow:'0 0 6px rgba(167,139,250,.9)' }} />
-            <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:9,
-              fontWeight:600, letterSpacing:'.12em', textTransform:'uppercase',
-              color:'rgba(167,139,250,.7)' }}>
-              demo
+          <div style={{ display:'flex', alignItems:'center', gap:6,
+            background: o.popular
+              ? `linear-gradient(135deg,${o.accent}28,${o.accent}18)`
+              : `rgba(255,255,255,.06)`,
+            border:`1px solid ${o.popular ? o.border : 'rgba(255,255,255,.12)'}`,
+            borderRadius:20, padding:'5px 12px',
+            boxShadow: o.popular ? `0 0 10px ${o.glow}` : 'none' }}>
+            <div style={{ fontFamily:"'Clash Display','Unbounded',sans-serif", fontSize:10,
+              fontWeight:800, color: o.popular ? o.accent : 'rgba(255,255,255,.55)',
+              letterSpacing:'.02em' }}>
+              Выбрать
             </div>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M4.5 2.5L8 6l-3.5 3.5" stroke={o.popular ? o.accent : 'rgba(255,255,255,.4)'}
+                strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </div>
         </div>
 
