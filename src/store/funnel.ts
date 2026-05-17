@@ -1,0 +1,66 @@
+import { create } from 'zustand'
+
+export type Screen =
+  | 'splash'
+  | 'cover'
+  | 'stake-select'
+  | 'card-reveal'
+  | 'signal-cards'
+  | 'paywall'
+  | 'verify'
+  | 'stawki-steps'
+  | 'home'
+  | 'home-signals'
+  | 'home-express'
+  | 'home-totals'
+  | 'home-week'
+  | 'home-favorites'
+  | 'profile'
+  | 'support'
+  | 'support-chat'
+
+interface FunnelState {
+  screen: Screen
+  stake: number
+  favorites: string[]
+  isPro: boolean
+  proDaysLeft: number
+  cardOpen: boolean
+  funnelSignalIdx: number | null
+  viewedCardIds: string[]
+  expandedCardIds: string[]
+  go: (s: Screen) => void
+  setStake: (v: number) => void
+  addFavorite: (id: string) => void
+  removeFavorite: (id: string) => void
+  isFavorite: (id: string) => boolean
+  setPro: (v: boolean) => void
+  setProDaysLeft: (v: number) => void
+  setCardOpen: (v: boolean) => void
+  setFunnelSignalIdx: (i: number | null) => void
+  markViewed: (id: string) => void
+  expandCard: (id: string) => void
+}
+
+export const useFunnel = create<FunnelState>((set, get) => ({
+  screen: 'splash',
+  stake: 100,
+  favorites: [],
+  isPro: false,
+  proDaysLeft: 7,
+  cardOpen: false,
+  funnelSignalIdx: null,
+  viewedCardIds: [],
+  expandedCardIds: [],
+  go: (screen) => set({ screen }),
+  setStake: (stake) => set({ stake }),
+  addFavorite: (id) => set(s => ({ favorites: s.favorites.includes(id) ? s.favorites : [...s.favorites, id] })),
+  removeFavorite: (id) => set(s => ({ favorites: s.favorites.filter(f => f !== id) })),
+  isFavorite: (id) => get().favorites.includes(id),
+  setPro: (isPro) => set({ isPro }),
+  setProDaysLeft: (proDaysLeft) => set({ proDaysLeft }),
+  setCardOpen: (cardOpen) => set({ cardOpen }),
+  setFunnelSignalIdx: (funnelSignalIdx) => set({ funnelSignalIdx }),
+  markViewed: (id) => set(s => ({ viewedCardIds: s.viewedCardIds.includes(id) ? s.viewedCardIds : [...s.viewedCardIds, id] })),
+  expandCard: (id) => set(s => ({ expandedCardIds: s.expandedCardIds.includes(id) ? s.expandedCardIds : [...s.expandedCardIds, id] })),
+}))

@@ -1,0 +1,43 @@
+<svg viewBox="0 0 56 56" width="56" height="56" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="s1" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#021A0C"/>
+      <stop offset="100%" stop-color="#010504"/>
+    </radialGradient>
+    <filter id="sg" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#10B981" flood-opacity="0.9"/>
+    </filter>
+  </defs>
+  <circle cx="28" cy="28" r="27" fill="url(#s1)"/>
+  <circle cx="28" cy="28" r="27" fill="none" stroke="#10B981" stroke-width="1.5" opacity="0.7"/>
+
+  <g filter="url(#sg)">
+    <!-- Ouroboros: snake eating its own tail — symbol of judgment/cycle -->
+    <!-- Snake body as thick arc, almost full circle -->
+    <path d="M28,10 A18,18 0 1,1 14,38"
+      fill="none" stroke="#10B981" stroke-width="5" stroke-linecap="round"/>
+    <!-- Highlight on snake body -->
+    <path d="M28,10 A18,18 0 1,1 14,38"
+      fill="none" stroke="#6EE7B7" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+
+    <!-- Snake head at start (top) -->
+    <ellipse cx="28" cy="10" rx="5.5" ry="4" fill="#059669"/>
+    <ellipse cx="28" cy="10" rx="5.5" ry="4" fill="none" stroke="#34D399" stroke-width="1"/>
+    <!-- Head details: eyes -->
+    <circle cx="25.5" cy="9" r="1.2" fill="#84CC16"/>
+    <circle cx="30.5" cy="9" r="1.2" fill="#84CC16"/>
+    <circle cx="25.5" cy="9" r="0.5" fill="#000"/>
+    <circle cx="30.5" cy="9" r="0.5" fill="#000"/>
+
+    <!-- Tail end (being eaten) -->
+    <path d="M14,38 Q10,44 14,46 Q18,48 19,44" fill="none" stroke="#10B981" stroke-width="4" stroke-linecap="round"/>
+
+    <!-- Forked tongue -->
+    <path d="M28,6 L28,3" stroke="#EF4444" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M28,3 L25,1 M28,3 L31,1" stroke="#EF4444" stroke-width="1.2" stroke-linecap="round"/>
+
+    <!-- Center scales texture dots -->
+    <circle cx="28" cy="28" r="3" fill="none" stroke="#34D399" stroke-width="0.8" opacity="0.5"/>
+    <circle cx="28" cy="28" r="1.2" fill="#34D399" opacity="0.7"/>
+  </g>
+</svg>

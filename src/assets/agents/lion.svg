@@ -1,0 +1,30 @@
+<svg viewBox="0 0 56 56" width="56" height="56" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="l1" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1C1200"/>
+      <stop offset="100%" stop-color="#080500"/>
+    </radialGradient>
+    <filter id="lg" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#F59E0B" flood-opacity="0.9"/>
+    </filter>
+  </defs>
+  <!-- BG -->
+  <circle cx="28" cy="28" r="27" fill="url(#l1)"/>
+  <circle cx="28" cy="28" r="27" fill="none" stroke="#F59E0B" stroke-width="1.5" opacity="0.7"/>
+
+  <g filter="url(#lg)">
+    <!-- Crown: 5 points -->
+    <path d="M10,36 L10,22 L16,30 L22,16 L28,24 L34,16 L40,30 L46,22 L46,36 Z"
+      fill="none" stroke="#F59E0B" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <!-- Crown base bar -->
+    <rect x="10" y="34" width="36" height="4" rx="2" fill="#F59E0B" opacity="0.9"/>
+    <!-- Sigma symbol in center -->
+    <text x="28" y="30" text-anchor="middle" dominant-baseline="middle"
+      font-family="Georgia,serif" font-size="13" font-weight="700"
+      fill="#FCD34D" letter-spacing="-1">Σ</text>
+    <!-- Small diamonds at crown tips -->
+    <polygon points="22,16 24,13 26,16 24,19" fill="#FCD34D" opacity="0.8"/>
+    <polygon points="28,24 30,21 32,24 30,27" fill="#FCD34D" opacity="0.8"/>
+    <polygon points="34,16 36,13 38,16 36,19" fill="#FCD34D" opacity="0.8"/>
+  </g>
+</svg>

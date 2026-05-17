@@ -1,0 +1,29 @@
+<svg viewBox="0 0 64 64" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bkBorder" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#EA580C"/>
+      <stop offset="100%" stop-color="#FB923C"/>
+    </linearGradient>
+    <radialGradient id="bkBall" cx="35%" cy="28%" r="65%">
+      <stop offset="0%" stop-color="#FDBA74"/>
+      <stop offset="35%" stop-color="#F97316"/>
+      <stop offset="100%" stop-color="#9A3412"/>
+    </radialGradient>
+    <clipPath id="bkClip">
+      <circle cx="32" cy="32" r="20"/>
+    </clipPath>
+    <filter id="bkGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#F97316" flood-opacity="0.85"/>
+    </filter>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#0D0B1E"/>
+  <rect width="64" height="64" rx="14" fill="none" stroke="url(#bkBorder)" stroke-width="1.5"/>
+  <circle cx="32" cy="32" r="20" fill="url(#bkBall)" filter="url(#bkGlow)"/>
+  <g clip-path="url(#bkClip)" fill="none" stroke="#7C2D12" stroke-width="2.2" stroke-linecap="round">
+    <line x1="32" y1="12" x2="32" y2="52"/>
+    <line x1="12" y1="32" x2="52" y2="32"/>
+    <path d="M 32,12 Q 16,22 16,32 Q 16,42 32,52"/>
+    <path d="M 32,12 Q 48,22 48,32 Q 48,42 32,52"/>
+  </g>
+  <ellipse cx="25" cy="22" rx="6" ry="4" fill="white" opacity="0.3" transform="rotate(-25 25 22)" clip-path="url(#bkClip)"/>
+</svg>
