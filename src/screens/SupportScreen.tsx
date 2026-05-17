@@ -42,21 +42,21 @@ export default function SupportScreen() {
       initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }}
       transition={{ duration: .28 }}
       style={{ height: '100%', display: 'flex', flexDirection: 'column',
-        background: '#04020D', overflow: 'visible', position: 'relative' }}>
+        background: '#04020D', overflow: 'hidden', position: 'relative' }}>
 
       {/* Ambient glows */}
       <div style={{ position: 'absolute', top: '-8%', right: '-8%',
         width: 320, height: 320, borderRadius: '50%', pointerEvents: 'none',
         background: 'radial-gradient(circle,rgba(16,185,129,.13) 0%,transparent 65%)',
-        filter: 'blur(48px)' }} />
+        filter: 'blur(18px)' }} />
       <div style={{ position: 'absolute', top: '35%', left: '-20%',
         width: 280, height: 280, borderRadius: '50%', pointerEvents: 'none',
         background: 'radial-gradient(circle,rgba(52,211,153,.09) 0%,transparent 65%)',
-        filter: 'blur(40px)' }} />
+        filter: 'blur(16px)' }} />
       <div style={{ position: 'absolute', bottom: '10%', right: '10%',
         width: 200, height: 200, borderRadius: '50%', pointerEvents: 'none',
         background: 'radial-gradient(circle,rgba(6,95,70,.18) 0%,transparent 65%)',
-        filter: 'blur(36px)' }} />
+        filter: 'blur(14px)' }} />
 
       {/* Header */}
       <div style={{ flexShrink: 0, padding: '52px 22px 18px' }}>
@@ -171,9 +171,7 @@ export default function SupportScreen() {
             style={{ flex: 1, borderRadius: 20, cursor: 'pointer', padding: 2,
               background: 'linear-gradient(135deg,#5B21B6,#7C3AED,#4C1D95)',
               boxShadow: '0 0 20px rgba(109,40,217,.3)' }}>
-            <M.div
-              animate={{ boxShadow: ['0 0 0px rgba(167,139,250,0)','0 0 18px rgba(167,139,250,.4)','0 0 0px rgba(167,139,250,0)'] }}
-              transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
+            <div className="glow-lavender"
               style={{ borderRadius: 18, padding: '18px 12px 14px',
                 background: 'linear-gradient(160deg,#0e0520 0%,#150833 100%)',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
@@ -233,7 +231,7 @@ export default function SupportScreen() {
                 <div style={{ fontFamily: f, fontWeight: 900, fontSize: 13, color: '#EDE9FE', lineHeight: 1, marginBottom: 3 }}>AI Чат</div>
                 <div style={{ fontSize: 10, color: 'rgba(196,181,253,.45)', fontFamily: 'sans-serif' }}>Chimera AI</div>
               </div>
-            </M.div>
+            </div>
           </M.div>
 
           {/* Live support — Human + Heart card */}

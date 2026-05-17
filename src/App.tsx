@@ -22,7 +22,8 @@ const HomeScreen     = lazy(() => import('./screens/HomeScreen'))
 const CategoryScreen = lazy(() => import('./screens/CategoryScreen'))
 const ProfileScreen  = lazy(() => import('./screens/ProfileScreen'))
 const SupportScreen  = lazy(() => import('./screens/SupportScreen'))
-const SupportChat    = lazy(() => import('./screens/SupportChat'))
+// SupportChat eager — маленький, лагает если lazy+анимация одновременно
+import SupportChat from './screens/SupportChat'
 
 const f    = "'Clash Display','Unbounded',sans-serif"
 const mono = "'JetBrains Mono',monospace"
@@ -93,7 +94,7 @@ function BottomNav() {
   const isSupport  = screen === 'support'
 
   return (
-    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 200, padding: '0 12px 22px' }}>
+    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 200, padding: '0 12px var(--nav-bottom)' }}>
       {/* Стекло */}
       <div style={{ position:'absolute', inset:0, pointerEvents:'none',
         background:'rgba(4,2,13,.95)',
@@ -262,7 +263,7 @@ export default function App() {
   }, [])
 
   return (
-    <div id="app" className="relative max-w-[440px] h-dvh mx-auto overflow-hidden" style={{ background: '#04020D' }}>
+    <div id="app" className="relative max-w-[440px] mx-auto overflow-hidden" style={{ background: '#04020D', height: '100vh', maxHeight: '100dvh' }}>
       <style>{GLOBAL_STYLES}</style>
 
       {/* ─── DEV TOGGLE (dev only) ─── */}

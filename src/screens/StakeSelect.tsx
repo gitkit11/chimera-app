@@ -62,7 +62,7 @@ export default function StakeSelect() {
       <div style={{ position:'absolute', top:'18%', left:'50%', transform:'translateX(-50%)',
         width:420, height:320, borderRadius:'50%', pointerEvents:'none',
         background:'radial-gradient(ellipse,rgba(109,40,217,.13) 0%,transparent 65%)',
-        filter:'blur(32px)' }} />
+        filter:'blur(14px)' }} />
 
       <div style={{ flex:1, display:'flex', flexDirection:'column',
         padding:'58px 20px 28px', gap:0, overflowY:'auto' }}>

@@ -439,14 +439,14 @@ export default function StawkiSteps() {
       <div style={{ position: 'absolute', top: '10%', left: '25%', transform: 'translateX(-50%)',
         width: 300, height: 260, pointerEvents: 'none',
         background: 'radial-gradient(ellipse,rgba(232,184,75,.1) 0%,transparent 65%)',
-        filter: 'blur(36px)' }} />
+        filter: 'blur(14px)' }} />
       <div style={{ position: 'absolute', top: '40%', right: '-5%',
         width: 240, height: 220, pointerEvents: 'none',
         background: 'radial-gradient(ellipse,rgba(109,40,217,.11) 0%,transparent 65%)',
-        filter: 'blur(36px)' }} />
+        filter: 'blur(14px)' }} />
 
       {/* ── Header ── */}
-      <div style={{ flexShrink: 0, padding: '50px 22px 0',
+      <div style={{ flexShrink: 0, padding: 'var(--header-top) 22px 0',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <img src={stawkiLogo} width={30} height={30} alt="StawkiBet"
@@ -466,7 +466,7 @@ export default function StawkiSteps() {
 
       {/* ── Content ── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column',
-        padding: '18px 22px 0', overflow: 'hidden' }}>
+        padding: '18px 22px 0', overflowY: 'auto' as const }}>
         <MA mode="wait">
           {step === 1 && <Step1 onNext={() => setStep(2)} />}
           {step === 2 && (

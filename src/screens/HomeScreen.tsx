@@ -80,7 +80,7 @@ export default function HomeScreen() {
         mixBlendMode: 'overlay' }} />
 
       {/* Header */}
-      <div style={{ flexShrink: 0, padding: '50px 20px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ flexShrink: 0, padding: 'var(--header-top) 20px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ position: 'relative', width: 34, height: 34, flexShrink: 0 }}>
             <svg viewBox="0 0 62 62" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%',
@@ -123,7 +123,7 @@ export default function HomeScreen() {
       </M.div>
 
       {/* Category cards */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 10px',
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px var(--scroll-bottom)',
         scrollbarWidth: 'none' as const, display: 'flex', flexDirection: 'column', gap: 8 }}>
 
         {CATS.map((cat, i) => (

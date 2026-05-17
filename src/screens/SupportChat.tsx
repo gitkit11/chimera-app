@@ -72,10 +72,10 @@ export default function SupportChat() {
       <div style={{ position: 'absolute', top: 0, left: '30%',
         width: 280, height: 280, borderRadius: '50%', pointerEvents: 'none',
         background: 'radial-gradient(circle,rgba(139,92,246,.08) 0%,transparent 65%)',
-        filter: 'blur(40px)' }} />
+        filter: 'blur(16px)' }} />
 
       {/* Header */}
-      <div style={{ flexShrink: 0, padding: '50px 20px 14px',
+      <div style={{ flexShrink: 0, padding: 'var(--header-top) 20px 14px',
         display: 'flex', alignItems: 'center', gap: 12,
         borderBottom: '1px solid rgba(255,255,255,.06)' }}>
         <M.button whileTap={{ scale: .9 }} onClick={() => go('support')}

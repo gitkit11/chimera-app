@@ -36,10 +36,12 @@ export default function ProfileScreen() {
   const [ti, setTi] = useState(0)
   const th = THEMES[ti]
 
-  // Preload all theme images so switching is instant
+  // Preload соседних тем при смене — не грузим все 4 сразу
   useEffect(() => {
-    THEMES.forEach(t => { const i = new Image(); i.src = t.bg })
-  }, [])
+    const next = THEMES[(ti + 1) % THEMES.length]
+    const prev = THEMES[(ti - 1 + THEMES.length) % THEMES.length]
+    ;[next, prev].forEach(t => { const i = new Image(); i.src = t.bg })
+  }, [ti])
 
   const name     = tgUser
     ? ([tgUser.first_name ?? '', tgUser.last_name ?? ''].join(' ').trim() || 'Пользователь')
@@ -76,7 +78,7 @@ export default function ProfileScreen() {
 
       {/* TOP BAR */}
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
-        padding: '14px 16px 0',
+        padding: 'max(14px, calc(env(safe-area-inset-top, 0px) + 8px)) 16px 0',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <M.button whileTap={{ scale: .88 }} onClick={() => go('home')}
           style={{ width: 36, height: 36, borderRadius: 10, border: 'none', cursor: 'pointer',

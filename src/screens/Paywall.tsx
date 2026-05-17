@@ -60,10 +60,10 @@ export default function Paywall() {
       <div style={{ position: 'absolute', top: '20%', left: '50%', transform: 'translateX(-50%)',
         width: 380, height: 280, pointerEvents: 'none',
         background: 'radial-gradient(ellipse,rgba(109,40,217,.09) 0%,transparent 68%)',
-        filter: 'blur(30px)' }} />
+        filter: 'blur(14px)' }} />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column',
-        padding: '50px 18px 0', overflowY: 'auto', scrollbarWidth: 'none' as const }}>
+        padding: 'var(--header-top) 18px 0', overflowY: 'auto', scrollbarWidth: 'none' as const }}>
 
         {/* ── Header ── */}
         <M.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .06 }}

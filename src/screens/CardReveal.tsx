@@ -385,8 +385,7 @@ export default function CardReveal() {
                     <M.button
                       onClick={() => openCard(i)}
                       whileTap={{ scale: .92 }}
-                      animate={{ boxShadow: ['0 0 0px rgba(139,92,246,0)', '0 0 16px rgba(139,92,246,.5)', '0 0 0px rgba(139,92,246,0)'] }}
-                      transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                      className="glow-violet"
                       style={{
                         flexShrink: 0, width: 58, height: 50, borderRadius: 12,
                         background: 'linear-gradient(135deg, #2D1065, #4C1D95)',

@@ -407,7 +407,7 @@ export default function SignalCards() {
 
           </div>
           {/* Back buttons */}
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10, padding: '14px 20px 34px', background: 'linear-gradient(180deg,transparent,rgba(7,3,26,.98) 35%)' }}>
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10, padding: '14px 20px calc(34px + env(safe-area-inset-bottom, 0px))', background: 'linear-gradient(180deg,transparent,rgba(7,3,26,.98) 35%)' }}>
             <div style={{ display: 'flex', gap: 10 }}>
               <M.button whileTap={{ scale: .97 }} onClick={flip} style={{ flex: 1, height: 54, borderRadius: 16, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#2D1065,#5B21B6)', boxShadow: '0 0 0 1px rgba(139,92,246,.4)', fontFamily: f, fontWeight: 700, fontSize: 15, color: '#F5F3FF' }}>← К сигналу</M.button>
               <M.button whileTap={{ scale: .9 }} onClick={close} style={{ width: 54, height: 54, borderRadius: 16, border: '1px solid rgba(255,255,255,.1)', cursor: 'pointer', background: 'rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: 'rgba(255,255,255,.5)' }}>✕</M.button>
@@ -418,7 +418,7 @@ export default function SignalCards() {
         </AnimatePresence>
 
         {/* Front buttons */}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10, padding: '14px 20px 34px', background: 'linear-gradient(180deg,transparent,rgba(4,2,13,.96) 35%)', display: flipped ? 'none' : 'flex', gap: 10 }}>
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10, padding: '14px 20px calc(34px + env(safe-area-inset-bottom, 0px))', background: 'linear-gradient(180deg,transparent,rgba(4,2,13,.96) 35%)', display: flipped ? 'none' : 'flex', gap: 10 }}>
           <M.button whileTap={{ scale: .9 }} onClick={close} style={{ width: 54, height: 54, borderRadius: 16, border: '1px solid rgba(255,255,255,.1)', cursor: 'pointer', background: 'rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, color: 'rgba(255,255,255,.5)' }}>←</M.button>
           <M.button whileTap={{ scale: .97 }} onClick={flip} style={{ flex: 1, height: 54, padding: '2px', borderRadius: 16, overflow: 'hidden', background: 'none', border: 'none', cursor: 'pointer', position: 'relative', display: 'block' }}>
             <span aria-hidden style={{ position: 'absolute', top: '50%', left: '50%', width: '220%', height: '220%', transform: 'translate(-50%,-50%)', animation: 'sc-spin 2.8s linear infinite', background: 'conic-gradient(from 0deg,#04020D 0deg,#04020D 95deg,#5B21B6 140deg,#A78BFA 178deg,#DDD6FE 195deg,#A78BFA 212deg,#5B21B6 255deg,#04020D 300deg,#04020D 360deg)', pointerEvents: 'none' }} />
@@ -517,11 +517,11 @@ export default function SignalCards() {
                     )}
                   </div>
                   {chosen === null ? (
-                    <M.div animate={{ boxShadow: ['0 0 0px rgba(139,92,246,0)','0 0 14px rgba(139,92,246,.5)','0 0 0px rgba(139,92,246,0)'] }} transition={{ duration: 2, repeat: Infinity }}
+                    <div className="glow-violet"
                       style={{ flexShrink: 0, width: 56, height: 50, borderRadius: 12, background: 'linear-gradient(135deg,#2D1065,#4C1D95)', border: '1px solid rgba(167,139,250,.4)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
                       <img src={tapIcon} width={26} height={26} alt="" />
                       <span style={{ fontFamily: f, fontWeight: 700, fontSize: 8, color: '#C4B5FD', letterSpacing: '.06em', textTransform: 'uppercase' as const }}>Открыть</span>
-                    </M.div>
+                    </div>
                   ) : isChosen ? (
                     <div style={{ flexShrink: 0, width: 56, height: 50, borderRadius: 12, background: 'rgba(167,139,250,.12)', border: '1px solid rgba(167,139,250,.3)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
                       <span style={{ fontSize: 18 }}>↗</span>
@@ -673,7 +673,7 @@ export default function SignalCards() {
             )}
 
             {/* Buttons */}
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10, padding: '14px 20px 34px', background: 'linear-gradient(180deg,transparent,rgba(4,2,13,.96) 35%)' }}>
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10, padding: '14px 20px calc(34px + env(safe-area-inset-bottom, 0px))', background: 'linear-gradient(180deg,transparent,rgba(4,2,13,.96) 35%)' }}>
               <div style={{ display: 'flex', gap: 10 }}>
                 {!flipped ? (
                   <>

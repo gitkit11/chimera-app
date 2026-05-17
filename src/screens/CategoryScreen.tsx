@@ -953,9 +953,7 @@ export default function CategoryScreen() {
                           <div style={{ height:12,width:'78%',borderRadius:4,background:'rgba(255,255,255,.06)',marginBottom:8 }}/>
                           <div style={{ height:7,width:'52%',borderRadius:4,background:'rgba(255,255,255,.05)' }}/>
                         </div>
-                        <M.div
-                          animate={{ boxShadow:['0 0 0px rgba(167,139,250,0)','0 0 14px rgba(167,139,250,.45)','0 0 0px rgba(167,139,250,0)'] }}
-                          transition={{ duration:2,repeat:Infinity }}
+                        <div className="glow-lavender"
                           style={{ flexShrink:0,width:52,height:50,borderRadius:12 }}>
                           <M.button whileTap={{scale:.93}} onClick={()=>{ expandCard(c.id); openDetail(c) }}
                             style={{ width:'100%',height:'100%',borderRadius:12,cursor:'pointer',
@@ -966,7 +964,7 @@ export default function CategoryScreen() {
                             <span style={{ fontFamily:mono,fontSize:7,fontWeight:700,color:'#C4B5FD',
                               letterSpacing:'.06em',textTransform:'uppercase' as const }}>открыть</span>
                           </M.button>
-                        </M.div>
+                        </div>
                       </div>
                     </>
                   ) : (<>
@@ -1094,9 +1092,7 @@ export default function CategoryScreen() {
                           <div style={{ fontFamily:mono,fontSize:9,color:'rgba(255,255,255,.4)' }}>Hit {c.hitPct}%</div>
                         </div>
                       </div>
-                      <M.div
-                        animate={{ boxShadow:['0 0 0px rgba(249,115,22,0)','0 0 14px rgba(249,115,22,.5)','0 0 0px rgba(249,115,22,0)'] }}
-                        transition={{ duration:2,repeat:Infinity }}
+                      <div className="glow-orange"
                         style={{ flexShrink:0,width:52,height:50,borderRadius:12 }}>
                         <M.button whileTap={{scale:.93}} onClick={()=>openDetail(c)}
                           style={{ width:'100%',height:'100%',borderRadius:12,cursor:'pointer',
@@ -1108,7 +1104,7 @@ export default function CategoryScreen() {
                             : <img src={tapIcon} width={22} height={22} alt=""/>}
                           <span style={{ fontFamily:mono,fontSize:7,fontWeight:700,color:'#FED7AA',letterSpacing:'.06em',textTransform:'uppercase' as const }}>{isOpened?'смотреть':'открыть'}</span>
                         </M.button>
-                      </M.div>
+                      </div>
                     </div>
                   )}
 
@@ -1141,9 +1137,7 @@ export default function CategoryScreen() {
                           <div style={{ fontFamily:mono,fontSize:10,color:'#34D399',fontWeight:700 }}>{c.ev}</div>
                         </div>
                       </div>
-                      <M.div
-                        animate={{ boxShadow:['0 0 0px rgba(139,92,246,0)','0 0 14px rgba(139,92,246,.5)','0 0 0px rgba(139,92,246,0)'] }}
-                        transition={{ duration:2,repeat:Infinity }}
+                      <div className="glow-violet"
                         style={{ flexShrink:0,width:52,height:50,borderRadius:12 }}>
                         <M.button whileTap={{scale:.93}} onClick={()=>openDetail(c)}
                           style={{ width:'100%',height:'100%',borderRadius:12,cursor:'pointer',
@@ -1156,7 +1150,7 @@ export default function CategoryScreen() {
                           <span style={{ fontFamily:mono,fontSize:7,fontWeight:700,
                             color:c.cardType==='total'?'#6EE7B7':'#C4B5FD',letterSpacing:'.06em',textTransform:'uppercase' as const }}>{isOpened?'смотреть':'открыть'}</span>
                         </M.button>
-                      </M.div>
+                      </div>
                     </div>
                   )}
 
