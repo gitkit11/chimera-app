@@ -4,6 +4,7 @@ import { useFunnel } from './store/funnel'
 import type { Screen } from './store/funnel'
 import { haptic } from './haptic'
 import { api } from './api'
+import { ChunkErrorBoundary } from './ChunkErrorBoundary'
 
 const M = motion as any
 
@@ -279,6 +280,7 @@ export default function App() {
         {isPro ? '💎 PRO' : '🔒 FREE'}
       </M.button>}
 
+      <ChunkErrorBoundary>
       <Suspense fallback={<div style={{ background: '#04020D', height: '100%' }} />}>
         <AnimatePresence mode="wait">
           {screen === 'splash'       && <SplashScreen key="splash" />}
@@ -298,6 +300,7 @@ export default function App() {
           {screen === 'support-chat' && <SupportChat    key="support-chat" />}
         </AnimatePresence>
       </Suspense>
+      </ChunkErrorBoundary>
 
       <BottomNav />
     </div>
