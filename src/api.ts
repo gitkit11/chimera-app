@@ -1,4 +1,4 @@
-const BASE = 'https://mastiff-mutilated-passable.ngrok-free.dev'
+const BASE = import.meta.env.VITE_API_URL ?? window.location.origin
 
 function initData(): string {
   return window.Telegram?.WebApp?.initData ?? ''
