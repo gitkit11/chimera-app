@@ -59,7 +59,7 @@ export default function SupportScreen() {
         filter: 'blur(14px)' }} />
 
       {/* Header */}
-      <div style={{ flexShrink: 0, padding: '52px 22px 18px' }}>
+      <div style={{ flexShrink: 0, padding: 'var(--header-top) 22px 18px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
           <div style={{ width: 42, height: 42, borderRadius: 13,
             background: 'linear-gradient(135deg,rgba(52,211,153,.18),rgba(16,185,129,.08))',

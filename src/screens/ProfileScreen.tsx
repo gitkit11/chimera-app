@@ -101,7 +101,7 @@ export default function ProfileScreen() {
 
       {/* SCROLL CONTAINER — same pattern as signal card detail */}
       <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', scrollbarWidth: 'none' as const }}>
-        <div style={{ padding: '0 20px 24px', minHeight: '100%',
+        <div style={{ padding: '0 20px var(--scroll-bottom)', minHeight: '100%',
           display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
 
           {/* ── Avatar + Name ── */}

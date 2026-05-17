@@ -263,7 +263,7 @@ export default function App() {
   }, [])
 
   return (
-    <div id="app" className="relative max-w-[440px] mx-auto overflow-hidden" style={{ background: '#04020D', height: '100vh', maxHeight: '100dvh' }}>
+    <div id="app" className="relative max-w-[440px] mx-auto overflow-hidden" style={{ background: '#04020D', height: '100%' }}>
       <style>{GLOBAL_STYLES}</style>
 
       {/* ─── DEV TOGGLE (dev only) ─── */}

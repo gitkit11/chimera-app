@@ -835,7 +835,7 @@ export default function CategoryScreen() {
       style={{ height:'100%',display:'flex',flexDirection:'column',background:'#04020D',overflow:'hidden',position:'relative' }}>
 
       {/* Header */}
-      <div style={{ flexShrink:0,padding:'52px 20px 14px' }}>
+      <div style={{ flexShrink:0,padding:'var(--header-top) 20px 14px' }}>
         <div style={{ display:'flex',alignItems:'center',gap:12,marginBottom:4 }}>
           <div style={{ width:36,height:36,borderRadius:10,flexShrink:0,
             background:`${meta.color}18`,border:`1px solid ${meta.color}44`,
@@ -850,7 +850,7 @@ export default function CategoryScreen() {
       </div>
 
       {/* Cards */}
-      <div style={{ flex:1,overflowY:'auto',padding:'0 20px 8px',scrollbarWidth:'none' as const }}>
+      <div style={{ flex:1,overflowY:'auto',padding:'0 20px var(--scroll-bottom)',scrollbarWidth:'none' as const }}>
         {cards.length===0 ? (
           <div style={{ height:'60%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:14 }}>
             <div style={{ fontSize:44,opacity:.25 }}>★</div>
