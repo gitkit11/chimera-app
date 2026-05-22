@@ -155,7 +155,7 @@ export default function SupportScreen() {
       </div>
 
       {/* Bottom — fixed buttons */}
-      <div style={{ flexShrink: 0, padding: '10px 22px 96px',
+      <div style={{ flexShrink: 0, padding: `10px 22px max(40px, calc(env(safe-area-inset-bottom,0px) + 16px))`,
         background: 'transparent',
         display: 'flex', flexDirection: 'column', gap: 8 }}>
 

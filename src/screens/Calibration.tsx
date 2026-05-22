@@ -56,7 +56,7 @@ function Row({label,sub,right,onClick}:{label:string;sub:string;right?:string;on
 function CalibLayout({step,q,accent,children}:{step:number;q:string;accent:string;children:React.ReactNode}) {
   return (
     <M.div initial={{opacity:0,x:40}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-40}}
-      transition={{duration:.35}} className="h-full flex flex-col px-5 pt-[76px] pb-6" style={{background:'#04020D'}}>
+      transition={{duration:.35}} className="h-full flex flex-col px-5" style={{background:'#04020D',paddingTop:'var(--header-top)',paddingBottom:'max(24px, calc(env(safe-area-inset-bottom,0px) + 16px))'}}>
       <Bar step={step} />
       <div className="font-mono text-[10px] font-semibold tracking-[.4em] uppercase mb-3" style={{color:'#A78BFA'}}>
         Вопрос 0{step} / 03

@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useFunnel } from '../store/funnel'
+import { haptic } from '../haptic'
 import logoIcon from '../assets/icon_dark2.png'
 
 const M  = motion as any
@@ -78,7 +79,7 @@ export default function SupportChat() {
       <div style={{ flexShrink: 0, padding: 'var(--header-top) 20px 14px',
         display: 'flex', alignItems: 'center', gap: 12,
         borderBottom: '1px solid rgba(255,255,255,.06)' }}>
-        <M.button whileTap={{ scale: .9 }} onClick={() => go('support')}
+        <M.button whileTap={{ scale: .9 }} onClick={() => { haptic('light'); go('support') }}
           style={{ width: 34, height: 34, borderRadius: 9, border: '1px solid rgba(255,255,255,.1)',
             background: 'rgba(255,255,255,.05)', cursor: 'pointer', flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -204,7 +205,7 @@ export default function SupportChat() {
       </div>
 
       {/* Input */}
-      <div style={{ flexShrink: 0, padding: '10px 18px 28px',
+      <div style={{ flexShrink: 0, padding: `10px 18px max(28px, calc(env(safe-area-inset-bottom,0px) + 16px))`,
         borderTop: '1px solid rgba(255,255,255,.06)',
         background: 'rgba(4,2,13,.98)', display: 'flex', gap: 10, alignItems: 'flex-end' }}>
         <input
@@ -216,7 +217,7 @@ export default function SupportChat() {
             fontFamily: 'sans-serif', fontSize: 14, color: '#fff', outline: 'none',
             resize: 'none' as const }}
         />
-        <M.button whileTap={{ scale: .9 }} onClick={send}
+        <M.button whileTap={{ scale: .9 }} onClick={() => { haptic('light'); send() }}
           style={{ width: 44, height: 44, borderRadius: 13, border: 'none',
             cursor: 'pointer', flexShrink: 0,
             background: input.trim()

@@ -228,7 +228,7 @@ export default function CardReveal() {
         action="Начать →"
       />
       {/* Header */}
-      <div className="flex-shrink-0 px-5 pt-[52px] pb-4">
+      <div className="flex-shrink-0 px-5 pb-4" style={{ paddingTop: 'var(--header-top)' }}>
         <div style={{ fontFamily: mono, fontSize: 9, fontWeight: 600, letterSpacing: '.35em', textTransform: 'uppercase' as const, color: '#A78BFA', marginBottom: 4 }}>
           Вчерашние сигналы · {YESTERDAY}
         </div>
@@ -405,7 +405,7 @@ export default function CardReveal() {
       </div>
 
       {/* Bottom */}
-      <div className="flex-shrink-0 px-5 pb-6 pt-3">
+      <div className="flex-shrink-0 px-5 pt-3" style={{ paddingBottom: 'max(24px, calc(env(safe-area-inset-bottom, 0px) + 16px))' }}>
         <AnimatePresence mode="wait">
           {showBanner && <ProfitBanner profit={profit} stake={stake} />}
         </AnimatePresence>

@@ -95,19 +95,20 @@ function BottomNav() {
   const isSupport  = screen === 'support'
 
   return (
-    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 200, padding: '0 12px var(--nav-bottom)' }}>
-      {/* Стекло */}
-      <div style={{ position:'absolute', inset:0, pointerEvents:'none',
-        background:'rgba(4,2,13,.95)',
-        backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)' as any }}/>
+    <div style={{
+      flexShrink: 0, position: 'relative',
+      background: 'rgba(4,2,13,.97)',
+      backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)' as any,
+      padding: '10px 12px var(--nav-bottom)'
+    }}>
       {/* Верхняя линия-свечение */}
       <div style={{ position:'absolute', top:0, left:'4%', right:'4%', height:1, pointerEvents:'none',
         background:'linear-gradient(90deg,transparent,rgba(109,40,217,.45) 20%,rgba(167,139,250,.75) 50%,rgba(109,40,217,.45) 80%,transparent)' }}/>
 
-      <div style={{ position:'relative', paddingTop:10, display:'flex', gap:7 }}>
+      <div style={{ display:'flex', gap:7 }}>
 
         {/* ── Назад ── */}
-        <M.button whileTap={{ scale:.88 }} onClick={() => go(backTarget)}
+        <M.button whileTap={{ scale:.88 }} onClick={() => { haptic('light'); go(backTarget) }}
           style={{ flex:1, padding:'9px 4px 8px', borderRadius:14, cursor:'pointer',
             background:'linear-gradient(160deg,rgba(109,40,217,.18),rgba(76,29,149,.09))',
             border:'1px solid rgba(139,92,246,.24)' as any,
@@ -221,11 +222,14 @@ function BottomNav() {
           </M.button>
         ) : (
           <M.button whileTap={{ scale:.88 }} onClick={() => { haptic(); go('paywall') }}
-            style={{ flex:1, padding:'9px 6px 8px', borderRadius:14, cursor:'pointer',
+            style={{ flex:1, padding:'9px 6px 8px', borderRadius:14, cursor:'pointer', position:'relative',
               background:'linear-gradient(160deg,rgba(55,20,120,.24),rgba(109,40,217,.12))',
               border:'1px solid rgba(139,92,246,.38)' as any,
-              animation: 'nav-pro-pulse 2.4s ease-in-out infinite',
+              boxShadow:'inset 0 1px 0 rgba(167,139,250,.12)',
               display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
+            {/* GPU-composited glow: opacity-only animation, no repaint */}
+            <div style={{ position:'absolute', inset:0, borderRadius:14, pointerEvents:'none',
+              boxShadow:'0 0 16px rgba(139,92,246,.5)', animation:'nav-pro-pulse 2.4s ease-in-out infinite' }}/>
             <Diamond size={15} active={false}/>
             <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:1 }}>
               <span style={{ fontFamily:f, fontWeight:800, fontSize:10, color:'rgba(196,181,253,.9)', lineHeight:1 }}>Pro</span>
@@ -242,8 +246,8 @@ function BottomNav() {
 // CSS анимации выведены из JS — не нагружают главный поток
 const GLOBAL_STYLES = `
   @keyframes nav-pro-pulse {
-    0%,100% { box-shadow: inset 0 1px 0 rgba(167,139,250,.12), 0 0 0px rgba(139,92,246,0); }
-    50%      { box-shadow: inset 0 1px 0 rgba(167,139,250,.18), 0 0 16px rgba(139,92,246,.45); }
+    0%,100% { opacity: 0; }
+    50%      { opacity: 1; }
   }
   @keyframes sc-spin { to { transform: translate(-50%,-50%) rotate(360deg) } }
   @keyframes sc-shim { 0%,42%{transform:translateX(-100%)} 62%,100%{transform:translateX(220%)} }
@@ -264,7 +268,8 @@ export default function App() {
   }, [])
 
   return (
-    <div id="app" className="relative max-w-[440px] mx-auto overflow-hidden" style={{ background: '#04020D', height: '100%' }}>
+    <div id="app" className="relative max-w-[440px] mx-auto"
+      style={{ background: '#04020D', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <style>{GLOBAL_STYLES}</style>
 
       {/* ─── DEV TOGGLE (dev only) ─── */}
@@ -280,27 +285,33 @@ export default function App() {
         {isPro ? '💎 PRO' : '🔒 FREE'}
       </M.button>}
 
-      <ChunkErrorBoundary>
-      <Suspense fallback={<div style={{ background: '#04020D', height: '100%' }} />}>
-        <AnimatePresence mode="wait">
-          {screen === 'splash'       && <SplashScreen key="splash" />}
-          {screen === 'cover'        && <Cover        key="cover" />}
-          {screen === 'stake-select' && <StakeSelect  key="stake-select" />}
-          {screen === 'card-reveal'  && <CardReveal   key="card-reveal" />}
-          {screen === 'signal-cards' && <SignalCards  key="signal-cards" />}
-          {screen === 'paywall'      && <Paywall      key="paywall" />}
-          {screen === 'verify'       && <Verify       key="verify" />}
-          {screen === 'stawki-steps' && <StawkiSteps  key="stawki-steps" />}
-          {screen === 'home'         && <HomeScreen   key="home" />}
-          {(screen === 'home-signals' || screen === 'home-express' ||
-            screen === 'home-totals'  || screen === 'home-week'    ||
-            screen === 'home-favorites') && <CategoryScreen key={screen} />}
-          {screen === 'profile'      && <ProfileScreen  key="profile" />}
-          {screen === 'support'      && <SupportScreen  key="support" />}
-          {screen === 'support-chat' && <SupportChat    key="support-chat" />}
-        </AnimatePresence>
-      </Suspense>
-      </ChunkErrorBoundary>
+      <div style={{ flex: 1, overflow: 'hidden', position: 'relative', minHeight: 0 }}>
+        <ChunkErrorBoundary>
+        <Suspense fallback={
+          <div style={{ background: '#04020D', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 28, height: 28, border: '2.5px solid rgba(167,139,250,.2)', borderTopColor: '#A78BFA', borderRadius: '50%', animation: 'sc-spin .8s linear infinite' }} />
+          </div>
+        }>
+          <AnimatePresence mode="wait">
+            {screen === 'splash'       && <SplashScreen key="splash" />}
+            {screen === 'cover'        && <Cover        key="cover" />}
+            {screen === 'stake-select' && <StakeSelect  key="stake-select" />}
+            {screen === 'card-reveal'  && <CardReveal   key="card-reveal" />}
+            {screen === 'signal-cards' && <SignalCards  key="signal-cards" />}
+            {screen === 'paywall'      && <Paywall      key="paywall" />}
+            {screen === 'verify'       && <Verify       key="verify" />}
+            {screen === 'stawki-steps' && <StawkiSteps  key="stawki-steps" />}
+            {screen === 'home'         && <HomeScreen   key="home" />}
+            {(screen === 'home-signals' || screen === 'home-express' ||
+              screen === 'home-totals'  || screen === 'home-week'    ||
+              screen === 'home-favorites') && <CategoryScreen key={screen} />}
+            {screen === 'profile'      && <ProfileScreen  key="profile" />}
+            {screen === 'support'      && <SupportScreen  key="support" />}
+            {screen === 'support-chat' && <SupportChat    key="support-chat" />}
+          </AnimatePresence>
+        </Suspense>
+        </ChunkErrorBoundary>
+      </div>
 
       <BottomNav />
     </div>

@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useFunnel } from '../store/funnel'
+import { haptic } from '../haptic'
 import footballIcon   from '../assets/icons/football.svg'
 import basketballIcon from '../assets/icons/basketball.svg'
 import tennisIcon     from '../assets/icons/tennis.svg'
@@ -219,7 +220,7 @@ export default function SignalCards() {
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: RARITY[c.rarity].color, boxShadow: `0 0 8px ${RARITY[c.rarity].color}` }} />
             <span style={{ fontFamily: mono, fontSize: 9.5, fontWeight: 800, letterSpacing: '.16em', color: RARITY[c.rarity].color }}>{RARITY[c.rarity].label}</span>
           </div>
-          <M.button whileTap={{ scale: .88 }} onClick={close} style={{ width: 36, height: 36, borderRadius: 10, border: 'none', cursor: 'pointer', background: 'rgba(0,0,0,.5)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: 'rgba(255,255,255,.7)' }}>✕</M.button>
+          <M.button whileTap={{ scale: .88 }} onClick={() => { haptic('light'); close() }} style={{ width: 36, height: 36, borderRadius: 10, border: 'none', cursor: 'pointer', background: 'rgba(0,0,0,.5)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: 'rgba(255,255,255,.7)' }}>✕</M.button>
         </div>
 
         <ExpandHint visible={showExpHint} onDismiss={() => setShowExpHint(false)} />
@@ -409,8 +410,8 @@ export default function SignalCards() {
           {/* Back buttons */}
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10, padding: '14px 20px calc(34px + env(safe-area-inset-bottom, 0px))', background: 'linear-gradient(180deg,transparent,rgba(7,3,26,.98) 35%)' }}>
             <div style={{ display: 'flex', gap: 10 }}>
-              <M.button whileTap={{ scale: .97 }} onClick={flip} style={{ flex: 1, height: 54, borderRadius: 16, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#2D1065,#5B21B6)', boxShadow: '0 0 0 1px rgba(139,92,246,.4)', fontFamily: f, fontWeight: 700, fontSize: 15, color: '#F5F3FF' }}>← К сигналу</M.button>
-              <M.button whileTap={{ scale: .9 }} onClick={close} style={{ width: 54, height: 54, borderRadius: 16, border: '1px solid rgba(255,255,255,.1)', cursor: 'pointer', background: 'rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: 'rgba(255,255,255,.5)' }}>✕</M.button>
+              <M.button whileTap={{ scale: .97 }} onClick={() => { haptic('light'); flip() }} style={{ flex: 1, height: 54, borderRadius: 16, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#2D1065,#5B21B6)', boxShadow: '0 0 0 1px rgba(139,92,246,.4)', fontFamily: f, fontWeight: 700, fontSize: 15, color: '#F5F3FF' }}>← К сигналу</M.button>
+              <M.button whileTap={{ scale: .9 }} onClick={() => { haptic('light'); close() }} style={{ width: 54, height: 54, borderRadius: 16, border: '1px solid rgba(255,255,255,.1)', cursor: 'pointer', background: 'rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: 'rgba(255,255,255,.5)' }}>✕</M.button>
             </div>
           </div>
         </M.div>
@@ -419,8 +420,8 @@ export default function SignalCards() {
 
         {/* Front buttons */}
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10, padding: '14px 20px calc(34px + env(safe-area-inset-bottom, 0px))', background: 'linear-gradient(180deg,transparent,rgba(4,2,13,.96) 35%)', display: flipped ? 'none' : 'flex', gap: 10 }}>
-          <M.button whileTap={{ scale: .9 }} onClick={close} style={{ width: 54, height: 54, borderRadius: 16, border: '1px solid rgba(255,255,255,.1)', cursor: 'pointer', background: 'rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, color: 'rgba(255,255,255,.5)' }}>←</M.button>
-          <M.button whileTap={{ scale: .97 }} onClick={flip} style={{ flex: 1, height: 54, padding: '2px', borderRadius: 16, overflow: 'hidden', background: 'none', border: 'none', cursor: 'pointer', position: 'relative', display: 'block' }}>
+          <M.button whileTap={{ scale: .9 }} onClick={() => { haptic('light'); close() }} style={{ width: 54, height: 54, borderRadius: 16, border: '1px solid rgba(255,255,255,.1)', cursor: 'pointer', background: 'rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, color: 'rgba(255,255,255,.5)' }}>←</M.button>
+          <M.button whileTap={{ scale: .97 }} onClick={() => { haptic('medium'); flip() }} style={{ flex: 1, height: 54, padding: '2px', borderRadius: 16, overflow: 'hidden', background: 'none', border: 'none', cursor: 'pointer', position: 'relative', display: 'block' }}>
             <span aria-hidden style={{ position: 'absolute', top: '50%', left: '50%', width: '220%', height: '220%', transform: 'translate(-50%,-50%)', animation: 'sc-spin 2.8s linear infinite', background: 'conic-gradient(from 0deg,#04020D 0deg,#04020D 95deg,#5B21B6 140deg,#A78BFA 178deg,#DDD6FE 195deg,#A78BFA 212deg,#5B21B6 255deg,#04020D 300deg,#04020D 360deg)', pointerEvents: 'none' }} />
             <span style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', borderRadius: 14, zIndex: 1, background: 'linear-gradient(135deg,#160528 0%,#2D1065 45%,#3B1578 100%)', fontFamily: f, fontWeight: 700, fontSize: 15, letterSpacing: '.04em', color: '#F5F3FF' }}>
               <span aria-hidden style={{ position: 'absolute', inset: 0, borderRadius: 14, pointerEvents: 'none', background: 'linear-gradient(105deg,transparent 25%,rgba(255,255,255,.1) 45%,rgba(255,255,255,.2) 50%,rgba(255,255,255,.1) 55%,transparent 75%)', animation: 'sc-shim 3.2s ease-in-out infinite' }} />
@@ -447,7 +448,7 @@ export default function SignalCards() {
         action="Выбрать →" />
 
       {/* Header */}
-      <div style={{ flexShrink: 0, padding: '52px 20px 14px' }}>
+      <div style={{ flexShrink: 0, padding: 'var(--header-top) 20px 14px' }}>
         <div style={{ fontFamily: mono, fontSize: 9, fontWeight: 600, letterSpacing: '.35em', textTransform: 'uppercase' as const, color: '#A78BFA', marginBottom: 6 }}>Chimera AI · Сегодня</div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <div style={{ fontFamily: f, fontWeight: 800, fontSize: 22, lineHeight: 1 }}>
@@ -470,7 +471,7 @@ export default function SignalCards() {
       </div>
 
       {/* Card list */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 8px', scrollbarWidth: 'none' as const }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 12px', scrollbarWidth: 'none' as const }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {SIGNALS.map((s, i) => {
             const isChosen = chosen === i
@@ -479,7 +480,7 @@ export default function SignalCards() {
                 initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: .05 * i }}
                 whileTap={{ scale: .97 }}
-                onClick={() => isChosen ? setExpanded(true) : pick(i)}
+                onClick={() => { haptic('medium'); isChosen ? setExpanded(true) : pick(i) }}
                 style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', height: 118, cursor: (chosen !== null && !isChosen) ? 'default' : 'pointer' }}
               >
                 <img src={s.bg} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: `brightness(${isChosen ? .42 : .18}) saturate(${isChosen ? .6 : .12})`, transition: 'filter .4s' }} />
@@ -541,8 +542,8 @@ export default function SignalCards() {
       </div>
 
       {/* CTA */}
-      <div style={{ flexShrink: 0, padding: '10px 20px 28px', background: 'linear-gradient(180deg,transparent,rgba(4,2,13,.98) 28%)' }}>
-        <M.button whileTap={{ scale: .96 }} onClick={() => go('paywall')}
+      <div style={{ flexShrink: 0, padding: '10px 20px', paddingBottom: 'max(28px, calc(env(safe-area-inset-bottom, 0px) + 16px))', background: 'linear-gradient(180deg,transparent,rgba(4,2,13,.98) 28%)' }}>
+        <M.button whileTap={{ scale: .96 }} onClick={() => { haptic('heavy'); go('paywall') }}
           style={{ position: 'relative', width: '100%', padding: '2px', borderRadius: 16, overflow: 'hidden', background: 'none', border: 'none', cursor: 'pointer', display: 'block' }}>
           <span aria-hidden style={{ position: 'absolute', top: '50%', left: '50%', width: '220%', height: '220%', transform: 'translate(-50%,-50%)', animation: 'sc-spin 2.8s linear infinite', background: 'conic-gradient(from 0deg,#04020D 0deg,#04020D 95deg,#5B21B6 140deg,#A78BFA 178deg,#DDD6FE 195deg,#A78BFA 212deg,#5B21B6 255deg,#04020D 300deg,#04020D 360deg)', pointerEvents: 'none' }} />
           <span style={{ position: 'relative', display: 'flex', alignItems: 'stretch', borderRadius: 14, overflow: 'hidden', zIndex: 1, background: 'linear-gradient(115deg,#160528 0%,#2D1065 40%,#3B1578 70%,#1a0533 100%)' }}>
@@ -677,8 +678,8 @@ export default function SignalCards() {
               <div style={{ display: 'flex', gap: 10 }}>
                 {!flipped ? (
                   <>
-                    <M.button whileTap={{ scale: .9 }} onClick={close} style={{ width: 54, height: 54, borderRadius: 16, border: '1px solid rgba(255,255,255,.1)', cursor: 'pointer', background: 'rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, color: 'rgba(255,255,255,.5)' }}>←</M.button>
-                    <M.button whileTap={{ scale: .97 }} onClick={flip} style={{ flex: 1, height: 54, padding: '2px', borderRadius: 16, overflow: 'hidden', background: 'none', border: 'none', cursor: 'pointer', position: 'relative', display: 'block' }}>
+                    <M.button whileTap={{ scale: .9 }} onClick={() => { haptic('light'); close() }} style={{ width: 54, height: 54, borderRadius: 16, border: '1px solid rgba(255,255,255,.1)', cursor: 'pointer', background: 'rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, color: 'rgba(255,255,255,.5)' }}>←</M.button>
+                    <M.button whileTap={{ scale: .97 }} onClick={() => { haptic('medium'); flip() }} style={{ flex: 1, height: 54, padding: '2px', borderRadius: 16, overflow: 'hidden', background: 'none', border: 'none', cursor: 'pointer', position: 'relative', display: 'block' }}>
                       <span aria-hidden style={{ position: 'absolute', top: '50%', left: '50%', width: '220%', height: '220%', transform: 'translate(-50%,-50%)', animation: 'sc-spin 2.8s linear infinite', background: 'conic-gradient(from 0deg,#04020D 0deg,#04020D 95deg,#5B21B6 140deg,#A78BFA 178deg,#DDD6FE 195deg,#A78BFA 212deg,#5B21B6 255deg,#04020D 300deg,#04020D 360deg)', pointerEvents: 'none' }} />
                       <span style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', borderRadius: 14, zIndex: 1, background: 'linear-gradient(135deg,#160528 0%,#2D1065 45%,#3B1578 100%)', fontFamily: f, fontWeight: 700, fontSize: 15, letterSpacing: '.04em', color: '#F5F3FF' }}>
                         <span aria-hidden style={{ position: 'absolute', inset: 0, borderRadius: 14, pointerEvents: 'none', background: 'linear-gradient(105deg,transparent 25%,rgba(255,255,255,.1) 45%,rgba(255,255,255,.2) 50%,rgba(255,255,255,.1) 55%,transparent 75%)', animation: 'sc-shim 3.2s ease-in-out infinite' }} />
@@ -688,8 +689,8 @@ export default function SignalCards() {
                   </>
                 ) : (
                   <>
-                    <M.button whileTap={{ scale: .97 }} onClick={flip} style={{ flex: 1, height: 54, borderRadius: 16, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#2D1065,#5B21B6)', boxShadow: '0 0 0 1px rgba(139,92,246,.4)', fontFamily: f, fontWeight: 700, fontSize: 15, letterSpacing: '.03em', color: '#F5F3FF' }}>← К сигналу</M.button>
-                    <M.button whileTap={{ scale: .9 }} onClick={close} style={{ width: 54, height: 54, borderRadius: 16, border: '1px solid rgba(255,255,255,.1)', cursor: 'pointer', background: 'rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: 'rgba(255,255,255,.5)' }}>✕</M.button>
+                    <M.button whileTap={{ scale: .97 }} onClick={() => { haptic('light'); flip() }} style={{ flex: 1, height: 54, borderRadius: 16, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#2D1065,#5B21B6)', boxShadow: '0 0 0 1px rgba(139,92,246,.4)', fontFamily: f, fontWeight: 700, fontSize: 15, letterSpacing: '.03em', color: '#F5F3FF' }}>← К сигналу</M.button>
+                    <M.button whileTap={{ scale: .9 }} onClick={() => { haptic('light'); close() }} style={{ width: 54, height: 54, borderRadius: 16, border: '1px solid rgba(255,255,255,.1)', cursor: 'pointer', background: 'rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: 'rgba(255,255,255,.5)' }}>✕</M.button>
                   </>
                 )}
               </div>

@@ -42,11 +42,13 @@ interface FunnelState {
   expandCard: (id: string) => void
 }
 
+const DEV_PRO_KEY = 'chimera_dev_pro'
+
 export const useFunnel = create<FunnelState>((set, get) => ({
   screen: 'splash',
   stake: 100,
   favorites: [],
-  isPro: false,
+  isPro: localStorage.getItem(DEV_PRO_KEY) === '1',
   proDaysLeft: 7,
   cardOpen: false,
   funnelSignalIdx: null,
@@ -57,7 +59,7 @@ export const useFunnel = create<FunnelState>((set, get) => ({
   addFavorite: (id) => set(s => ({ favorites: s.favorites.includes(id) ? s.favorites : [...s.favorites, id] })),
   removeFavorite: (id) => set(s => ({ favorites: s.favorites.filter(f => f !== id) })),
   isFavorite: (id) => get().favorites.includes(id),
-  setPro: (isPro) => set({ isPro }),
+  setPro: (isPro) => { localStorage.setItem(DEV_PRO_KEY, isPro ? '1' : '0'); set({ isPro }) },
   setProDaysLeft: (proDaysLeft) => set({ proDaysLeft }),
   setCardOpen: (cardOpen) => set({ cardOpen }),
   setFunnelSignalIdx: (funnelSignalIdx) => set({ funnelSignalIdx }),

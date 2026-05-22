@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useFunnel } from '../store/funnel'
+import { haptic } from '../haptic'
 import stawkiLogo from '../assets/stawkibet.svg'
 
 const M  = motion as any
@@ -41,7 +42,7 @@ function CopyUrl() {
     setTimeout(() => setCopied(false), 2000)
   }
   return (
-    <M.button whileTap={{ scale: .97 }} onClick={copy}
+    <M.button whileTap={{ scale: .97 }} onClick={() => { haptic('light'); copy() }}
       style={{ width: '100%', display: 'flex', alignItems: 'center',
         padding: '10px 14px', borderRadius: 12, border: `1px solid ${GOLD_LINE}`,
         background: GOLD_DIM, cursor: 'pointer', gap: 10, transition: 'all .2s' }}>
@@ -209,7 +210,7 @@ function Step1({ onNext }: { onNext: () => void }) {
         <CopyUrl />
 
         {/* Secondary */}
-        <M.button whileTap={{ scale: .97 }} onClick={onNext}
+        <M.button whileTap={{ scale: .97 }} onClick={() => { haptic('medium'); onNext() }}
           style={{ width: '100%', padding: '17px', borderRadius: 16, cursor: 'pointer',
             background: 'rgba(255,255,255,.08)', border: '1.5px solid rgba(255,255,255,.2)',
             fontFamily: f, fontWeight: 800, fontSize: 15, color: 'rgba(255,255,255,.75)',
@@ -310,7 +311,7 @@ function Step2({
         </div>
 
         {/* Deposit toggle */}
-        <M.div whileTap={{ scale: .98 }} onClick={() => setDepositDone(!depositDone)}
+        <M.div whileTap={{ scale: .98 }} onClick={() => { haptic('light'); setDepositDone(!depositDone) }}
           style={{ display: 'flex', alignItems: 'center', gap: 14,
             padding: '15px 16px', borderRadius: 16, cursor: 'pointer', marginBottom: 10,
             background: depositDone ? GOLD_DIM : 'rgba(255,255,255,.03)',
@@ -349,7 +350,7 @@ function Step2({
       </div>
 
       {/* Submit */}
-      <M.button whileTap={canSubmit ? { scale: .97 } : {}} onClick={canSubmit ? onSubmit : undefined}
+      <M.button whileTap={canSubmit ? { scale: .97 } : {}} onClick={canSubmit ? () => { haptic('medium'); onSubmit() } : undefined}
         style={{ width: '100%', padding: '16px', borderRadius: 16, border: 'none',
           cursor: canSubmit ? 'pointer' : 'default',
           background: canSubmit
@@ -411,7 +412,7 @@ function Step3({ onHome }: { onHome: () => void }) {
         </span>
       </div>
 
-      <M.button whileTap={{ scale: .97 }} onClick={onHome}
+      <M.button whileTap={{ scale: .97 }} onClick={() => { haptic('medium'); onHome() }}
         style={{ width: '100%', padding: '15px', borderRadius: 14, border: 'none',
           cursor: 'pointer', background: 'rgba(255,255,255,.06)',
           outline: '1px solid rgba(255,255,255,.1)',
@@ -479,7 +480,7 @@ export default function StawkiSteps() {
       </div>
 
       {/* ── Bottom ── */}
-      <div style={{ flexShrink: 0, padding: '10px 22px 24px',
+      <div style={{ flexShrink: 0, padding: `10px 22px max(24px, calc(env(safe-area-inset-bottom,0px) + 16px))`,
         display: 'flex', flexDirection: 'column', gap: 8 }}>
 
         {/* Help */}
@@ -512,7 +513,7 @@ export default function StawkiSteps() {
         {/* Back */}
         {step < 3 && (
           <M.button whileTap={{ scale: .97 }}
-            onClick={() => step === 1 ? go('paywall') : setStep(s => (s - 1) as 1 | 2 | 3)}
+            onClick={() => { haptic('light'); step === 1 ? go('paywall') : setStep(s => (s - 1) as 1 | 2 | 3) }}
             style={{ width: '100%', padding: '12px', borderRadius: 13, cursor: 'pointer',
               background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.14)',
               fontFamily: f, fontWeight: 700, fontSize: 12, color: 'rgba(255,255,255,.45)',

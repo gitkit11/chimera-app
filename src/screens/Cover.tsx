@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { motion } from 'framer-motion'
 import { useFunnel } from '../store/funnel'
+import { haptic } from '../haptic'
 import bg from '../assets/concept_aura.png'
 import iconDark from '../assets/icon_dark2.png'
 
@@ -19,7 +20,7 @@ export default function Cover() {
         }} />
       </div>
 
-      <div className="relative z-10 h-full flex flex-col px-[20px] pb-5 pt-[18px]">
+      <div className="relative z-10 h-full flex flex-col px-[20px] pt-[18px]">
         {/* Top bar */}
         <M.div initial={{opacity:0,y:-12}} animate={{opacity:1,y:0}} transition={{delay:.08,duration:.6}}
           className="flex justify-between items-center flex-shrink-0">
@@ -53,7 +54,7 @@ export default function Cover() {
           </div>
         </M.div>
 
-        <div className="flex-1 flex flex-col justify-end min-h-0 pb-1">
+        <div className="flex-1 flex flex-col justify-end min-h-0" style={{paddingBottom:'calc(env(safe-area-inset-bottom,0px) + 92px)'}}>
           {/* ROI */}
           <M.div initial={{opacity:0,y:18}} animate={{opacity:1,y:0}} transition={{delay:.2,duration:.7}}
             style={{fontSize:'clamp(58px,16vw,80px)',fontFamily:"'Clash Display','Unbounded',sans-serif",
@@ -97,69 +98,68 @@ export default function Cover() {
             ))}
           </M.div>
 
-          {/* CTA — Plasma Arc */}
-          <M.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:.64,duration:.6}}>
-            <M.button
-              whileTap={{scale:.96}}
-              transition={{type:'spring',stiffness:380,damping:15}}
-              onClick={()=>go('stake-select')}
-              style={{position:'relative',width:'100%',padding:'2px',borderRadius:16,
-                overflow:'hidden',background:'none',border:'none',cursor:'pointer',display:'block'}}>
-
-              {/* rotating plasma arc — transform:rotate only, GPU */}
-              <span aria-hidden style={{
-                position:'absolute',top:'50%',left:'50%',
-                width:'220%',height:'220%',
-                transform:'translate(-50%,-50%)',
-                animation:'cta-spin 2.8s linear infinite',
-                background:'conic-gradient(from 0deg,#04020D 0deg,#04020D 95deg,#5B21B6 140deg,#A78BFA 178deg,#DDD6FE 195deg,#A78BFA 212deg,#5B21B6 255deg,#04020D 300deg,#04020D 360deg)',
-                pointerEvents:'none',
-              }}/>
-
-              {/* inner surface */}
-              <span style={{position:'relative',display:'flex',alignItems:'stretch',
-                borderRadius:14,overflow:'hidden',zIndex:1,
-                background:'linear-gradient(115deg,#160528 0%,#2D1065 40%,#3B1578 70%,#1a0533 100%)'}}>
-
-                {/* shimmer — translateX only */}
-                <span aria-hidden style={{
-                  position:'absolute',inset:0,pointerEvents:'none',
-                  background:'linear-gradient(105deg,transparent 25%,rgba(255,255,255,.11) 45%,rgba(255,255,255,.22) 50%,rgba(255,255,255,.11) 55%,transparent 75%)',
-                  animation:'cta-shim 3.4s ease-in-out infinite',
-                }}/>
-
-                {/* top specular edge */}
-                <span aria-hidden style={{
-                  position:'absolute',top:0,left:'6%',right:'6%',height:1,pointerEvents:'none',
-                  background:'linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent)',
-                }}/>
-
-                <span style={{flex:1,padding:'20px 22px',position:'relative',zIndex:1,
-                  fontFamily:"'Clash Display','Unbounded',sans-serif",fontWeight:700,
-                  fontSize:17,letterSpacing:'.025em',color:'#F5F3FF',
-                  textShadow:'0 0 18px rgba(167,139,250,.45)'}}>
-                  Начать
-                </span>
-                <span style={{width:58,flexShrink:0,display:'flex',alignItems:'center',
-                  justifyContent:'center',fontSize:20,fontWeight:700,color:'rgba(245,243,255,.9)',
-                  background:'rgba(0,0,0,.22)',borderLeft:'1px solid rgba(167,139,250,.22)',
-                  position:'relative',zIndex:1}}>
-                  →
-                </span>
-              </span>
-            </M.button>
-          </M.div>
-          <style>{`
-            @keyframes cta-spin {
-              to { transform: translate(-50%,-50%) rotate(360deg) }
-            }
-            @keyframes cta-shim {
-              0%,42% { transform: translateX(-100%) }
-              62%,100% { transform: translateX(220%) }
-            }
-          `}</style>
         </div>
       </div>
+
+      {/* CTA — Plasma Arc — absolute so it's ALWAYS visible regardless of WebView height */}
+      <M.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:.64,duration:.6}}
+        style={{position:'absolute',bottom:0,left:0,right:0,zIndex:20,
+          padding:`0 20px max(20px, calc(env(safe-area-inset-bottom,0px) + 16px))`}}>
+        <M.button
+          whileTap={{scale:.96}}
+          transition={{type:'spring',stiffness:380,damping:15}}
+          onClick={()=>{ haptic('heavy'); go('stake-select') }}
+          style={{position:'relative',width:'100%',padding:'2px',borderRadius:16,
+            overflow:'hidden',background:'none',border:'none',cursor:'pointer',display:'block'}}>
+
+          <span aria-hidden style={{
+            position:'absolute',top:'50%',left:'50%',
+            width:'220%',height:'220%',
+            transform:'translate(-50%,-50%)',
+            animation:'cta-spin 2.8s linear infinite',
+            background:'conic-gradient(from 0deg,#04020D 0deg,#04020D 95deg,#5B21B6 140deg,#A78BFA 178deg,#DDD6FE 195deg,#A78BFA 212deg,#5B21B6 255deg,#04020D 300deg,#04020D 360deg)',
+            pointerEvents:'none',
+          }}/>
+
+          <span style={{position:'relative',display:'flex',alignItems:'stretch',
+            borderRadius:14,overflow:'hidden',zIndex:1,
+            background:'linear-gradient(115deg,#160528 0%,#2D1065 40%,#3B1578 70%,#1a0533 100%)'}}>
+
+            <span aria-hidden style={{
+              position:'absolute',inset:0,pointerEvents:'none',
+              background:'linear-gradient(105deg,transparent 25%,rgba(255,255,255,.11) 45%,rgba(255,255,255,.22) 50%,rgba(255,255,255,.11) 55%,transparent 75%)',
+              animation:'cta-shim 3.4s ease-in-out infinite',
+            }}/>
+
+            <span aria-hidden style={{
+              position:'absolute',top:0,left:'6%',right:'6%',height:1,pointerEvents:'none',
+              background:'linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent)',
+            }}/>
+
+            <span style={{flex:1,padding:'20px 22px',position:'relative',zIndex:1,
+              fontFamily:"'Clash Display','Unbounded',sans-serif",fontWeight:700,
+              fontSize:17,letterSpacing:'.025em',color:'#F5F3FF',
+              textShadow:'0 0 18px rgba(167,139,250,.45)'}}>
+              Начать
+            </span>
+            <span style={{width:58,flexShrink:0,display:'flex',alignItems:'center',
+              justifyContent:'center',fontSize:20,fontWeight:700,color:'rgba(245,243,255,.9)',
+              background:'rgba(0,0,0,.22)',borderLeft:'1px solid rgba(167,139,250,.22)',
+              position:'relative',zIndex:1}}>
+              →
+            </span>
+          </span>
+        </M.button>
+      </M.div>
+      <style>{`
+        @keyframes cta-spin {
+          to { transform: translate(-50%,-50%) rotate(360deg) }
+        }
+        @keyframes cta-shim {
+          0%,42% { transform: translateX(-100%) }
+          62%,100% { transform: translateX(220%) }
+        }
+      `}</style>
 
       <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}`}</style>
     </div>

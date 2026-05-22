@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useFunnel } from '../store/funnel'
+import { haptic } from '../haptic'
 import footballIcon   from '../assets/icons/football.svg'
 import basketballIcon from '../assets/icons/basketball.svg'
 import tennisIcon     from '../assets/icons/tennis.svg'
@@ -110,7 +111,7 @@ const ALL_CARDS: Record<string, Card[]> = {
   'home-express': [
     { id:'exp-1', cardType:'express', sport:'football', tag:'Экспресс ×2 · Норм. риск', home:'Real + PSG', away:'',
       rec:'×3.85', odds:'3.85', ev:'+22%', score:88, rarity:'epic', time:'21:00', date:'15 мая',
-      bg:'/bg/speed_210.png', homeLogo:null, awayLogo:null,
+      bg:`${import.meta.env.BASE_URL}bg/speed_210.png`, homeLogo:null, awayLogo:null,
       hitPct:61, maxBet:'5%', correlation:'низкая',
       legs:[
         {sport:'football', match:'Real Madrid vs Bayern', pick:'П1',   odds:'1.78', conf:82, color:'#34D399'},
@@ -125,7 +126,7 @@ const ALL_CARDS: Record<string, Card[]> = {
 
     { id:'exp-2', cardType:'express', sport:'basketball', tag:'Экспресс ×3 · Средний риск', home:'NBA тройник', away:'',
       rec:'×5.20', odds:'5.20', ev:'+18%', score:78, rarity:'legend', time:'04:00', date:'16 мая',
-      bg:'/bg/speed_280.png', homeLogo:null, awayLogo:null,
+      bg:`${import.meta.env.BASE_URL}bg/speed_280.png`, homeLogo:null, awayLogo:null,
       hitPct:42, maxBet:'3%', correlation:'средняя',
       legs:[
         {sport:'basketball', match:'Boston vs Miami',     pick:'П1',       odds:'1.65', conf:78, color:'#F97316'},
@@ -141,7 +142,7 @@ const ALL_CARDS: Record<string, Card[]> = {
 
     { id:'exp-3', cardType:'express', sport:'football', tag:'Экспресс ×4 · Сильный риск', home:'Мега экспресс', away:'',
       rec:'×9.40', odds:'9.40', ev:'+15%', score:71, rarity:'chimera', time:'21:00', date:'15 мая',
-      bg:'/bg/speed_340.png', homeLogo:null, awayLogo:null,
+      bg:`${import.meta.env.BASE_URL}bg/speed_340.png`, homeLogo:null, awayLogo:null,
       hitPct:24, maxBet:'2%', correlation:'средняя',
       legs:[
         {sport:'football',    match:'Real Madrid vs Bayern',  pick:'П1',   odds:'1.78', conf:82, color:'#EF4444'},
@@ -893,7 +894,7 @@ export default function CategoryScreen() {
                     <>
                       <div style={{ position:'absolute',inset:0,
                         background:'linear-gradient(90deg,rgba(4,2,13,.93) 0%,rgba(4,2,13,.75) 100%)' }}/>
-                      <div onClick={()=>go('paywall')}
+                      <div onClick={()=>{ haptic('medium'); go('paywall') }}
                         style={{ position:'relative',zIndex:2,height:'100%',
                           display:'flex',alignItems:'center',padding:'0 14px',gap:12,cursor:'pointer' }}>
                         <div style={{ position:'relative',flexShrink:0 }}>
@@ -955,7 +956,7 @@ export default function CategoryScreen() {
                         </div>
                         <div className="glow-lavender"
                           style={{ flexShrink:0,width:52,height:50,borderRadius:12 }}>
-                          <M.button whileTap={{scale:.93}} onClick={()=>{ expandCard(c.id); openDetail(c) }}
+                          <M.button whileTap={{scale:.93}} onClick={()=>{ haptic('medium'); expandCard(c.id); openDetail(c) }}
                             style={{ width:'100%',height:'100%',borderRadius:12,cursor:'pointer',
                               background:'linear-gradient(135deg,#2D1065,#4C1D95)',
                               border:'1px solid rgba(167,139,250,.4)' as any,
@@ -1172,28 +1173,6 @@ export default function CategoryScreen() {
             })}
           </div>
         )}
-      </div>
-
-      {/* Bottom nav */}
-      <div style={{ flexShrink:0,padding:'8px 16px 24px',
-        background:'linear-gradient(180deg,transparent,rgba(4,2,13,.98) 30%)',
-        display:'flex',gap:8 }}>
-        <M.button whileTap={{scale:.97}} onClick={()=>go('home')}
-          style={{ flex:1,padding:'13px',borderRadius:13,cursor:'pointer',
-            background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.09)' as any,
-            display:'flex',alignItems:'center',justifyContent:'center',gap:6,
-            fontFamily:f,fontWeight:700,fontSize:12,color:'rgba(255,255,255,.45)' }}>
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M8 1.5L3 6L8 10.5" stroke="rgba(255,255,255,.45)" strokeWidth="1.8" strokeLinecap="round"/>
-          </svg>
-          Меню
-        </M.button>
-        <M.button whileTap={{scale:.97}} onClick={()=>go('paywall')}
-          style={{ flex:1,padding:'13px',borderRadius:13,cursor:'pointer',
-            background:`${meta.color}14`,border:`1px solid ${meta.color}33` as any,
-            fontFamily:f,fontWeight:700,fontSize:12,color:meta.color }}>
-          🔓 Открыть PRO
-        </M.button>
       </div>
 
       <style>{`

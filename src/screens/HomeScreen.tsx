@@ -1,9 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { motion } from 'framer-motion'
+import { useState, useRef } from 'react'
 import { useFunnel } from '../store/funnel'
+import { haptic } from '../haptic'
 import logoIcon    from '../assets/icon_dark2.png'
-const sniperBg    = '/bg/sniper_photo.png'
-const goldenCupBg = '/bg/ak47_gold.png'
+const sniperBg    = `${import.meta.env.BASE_URL}bg/sniper_photo.png`
+const goldenCupBg = `${import.meta.env.BASE_URL}bg/ak47_gold.png`
 import signalsIcon  from '../assets/menu/signals.svg'
 import expressIcon  from '../assets/menu/express.svg'
 import totalsIcon   from '../assets/menu/totals.svg'
@@ -49,7 +51,26 @@ const CATS = [
 ]
 
 export default function HomeScreen() {
-  const go = useFunnel(s => s.go)
+  const go     = useFunnel(s => s.go)
+  const isPro  = useFunnel(s => s.isPro)
+  const setPro = useFunnel(s => s.setPro)
+  const [toast, setToast] = useState<string | null>(null)
+  const holdRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function startHold(e: React.TouchEvent | React.MouseEvent) {
+    e.preventDefault()
+    if (holdRef.current) clearTimeout(holdRef.current)
+    holdRef.current = setTimeout(() => {
+      const next = !isPro
+      setPro(next)
+      haptic('heavy')
+      setToast(next ? '💎 PRO включён' : '🔒 PRO выключен')
+      setTimeout(() => setToast(null), 2500)
+    }, 1000)
+  }
+  function cancelHold() {
+    if (holdRef.current) { clearTimeout(holdRef.current); holdRef.current = null }
+  }
 
   return (
     <M.div
@@ -82,7 +103,15 @@ export default function HomeScreen() {
       {/* Header */}
       <div style={{ flexShrink: 0, padding: 'var(--header-top) 20px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ position: 'relative', width: 34, height: 34, flexShrink: 0 }}>
+          <div
+            onTouchStart={startHold}
+            onTouchEnd={cancelHold}
+            onTouchCancel={cancelHold}
+            onMouseDown={startHold}
+            onMouseUp={cancelHold}
+            onMouseLeave={cancelHold}
+            onContextMenu={e => e.preventDefault()}
+            style={{ position: 'relative', width: 34, height: 34, flexShrink: 0, cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none' } as any}>
             <svg viewBox="0 0 62 62" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%',
               filter: 'drop-shadow(0 0 7px rgba(167,139,250,.55))' }}>
               <polygon points="2,6 60,6 31,58" style={{ fill: '#1C1F3A', stroke: 'rgba(167,139,250,.55)', strokeWidth: 1.5 }} />
@@ -131,7 +160,7 @@ export default function HomeScreen() {
             initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: .1 + i * .07, type: 'spring', stiffness: 220 }}
             whileTap={{ scale: .97 }}
-            onClick={() => go(cat.id)}
+            onClick={() => { haptic('medium'); go(cat.id) }}
             style={{ position: 'relative', borderRadius: 18, overflow: 'hidden',
               height: 92, cursor: 'pointer',
               background: '#04020D',
@@ -225,6 +254,18 @@ export default function HomeScreen() {
         </M.div>
 
       </div>
+
+      {/* Dev PRO toast */}
+      {toast && (
+        <div style={{ position: 'absolute', top: 'calc(var(--header-top) + 56px)', left: '50%',
+          transform: 'translateX(-50%)', zIndex: 999,
+          background: 'rgba(20,10,40,.96)', border: '1px solid rgba(167,139,250,.4)',
+          borderRadius: 20, padding: '8px 18px', whiteSpace: 'nowrap',
+          fontFamily: "'JetBrains Mono',monospace", fontSize: 12, fontWeight: 700, color: '#DDD6FE',
+          boxShadow: '0 0 24px rgba(139,92,246,.4)' }}>
+          {toast}
+        </div>
+      )}
 
       <style>{`
         @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}

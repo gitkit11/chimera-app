@@ -33,7 +33,7 @@ export default function Reconstruction() {
       style={{ background: '#04020D' }}
     >
       {/* Header */}
-      <div className="flex-shrink-0 flex items-center justify-between px-5 pt-[52px] pb-3">
+      <div className="flex-shrink-0 flex items-center justify-between px-5 pb-3" style={{paddingTop:'var(--header-top)'}}>
         <div>
           <div className="font-mono text-[9px] font-semibold tracking-[.35em] uppercase mb-[3px]" style={{ color: '#A78BFA' }}>
             Chimera AI · Сегодня
@@ -180,8 +180,8 @@ export default function Reconstruction() {
       </div>
 
       {/* Sticky CTA */}
-      <div className="absolute bottom-0 left-0 right-0 px-5 pb-7 pt-5"
-        style={{ background: 'linear-gradient(180deg,transparent 0%,rgba(4,2,13,.95) 28%,#04020D 100%)' }}>
+      <div className="absolute bottom-0 left-0 right-0 px-5 pt-5"
+        style={{ background: 'linear-gradient(180deg,transparent 0%,rgba(4,2,13,.95) 28%,#04020D 100%)', paddingBottom:'max(28px, calc(env(safe-area-inset-bottom,0px) + 16px))' }}>
         <M.button
           whileTap={{ scale: .985 }}
           onClick={() => go('paywall')}

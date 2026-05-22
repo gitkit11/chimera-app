@@ -35,14 +35,15 @@ export default function Paywall() {
   if (isPro) return (
     <M.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
       style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', background: '#04020D', padding: '0 28px 40px' }}>
+        justifyContent: 'center', background: '#04020D',
+        padding: `0 28px max(40px, calc(env(safe-area-inset-bottom,0px) + 24px))` }}>
       <div style={{ fontFamily: f, fontWeight: 900, fontSize: 28, textAlign: 'center', marginBottom: 6 }}>
         Chimera <span style={{ color: '#A78BFA' }}>PRO</span>
       </div>
       <div style={{ fontFamily: mono, fontSize: 11, color: 'rgba(255,255,255,.3)', marginBottom: 28 }}>
         {proDaysLeft} дней осталось
       </div>
-      <M.button whileTap={{ scale: .97 }} onClick={() => go('home')}
+      <M.button whileTap={{ scale: .97 }} onClick={() => { haptic('medium'); go('home') }}
         style={{ width: '100%', maxWidth: 300, padding: '15px', borderRadius: 16, border: 'none',
           cursor: 'pointer', background: 'linear-gradient(135deg,#2D1065,#7C3AED)',
           fontFamily: f, fontWeight: 800, fontSize: 15, color: '#F5F3FF' }}>
@@ -187,7 +188,7 @@ export default function Paywall() {
               </div>
             </div>
 
-            <M.button whileTap={{ scale: .97 }} onClick={() => go('stawki-steps')}
+            <M.button whileTap={{ scale: .97 }} onClick={() => { haptic('heavy'); go('stawki-steps') }}
               style={{ position: 'relative', width: '100%', padding: '13px', borderRadius: 13,
                 border: 'none', cursor: 'pointer', overflow: 'hidden',
                 background: GOLD, fontFamily: f, fontWeight: 900, fontSize: 14,
@@ -287,8 +288,8 @@ export default function Paywall() {
       </div>
 
       {/* ── Bottom nav ── */}
-      <div style={{ flexShrink: 0, padding: '8px 18px 22px', display: 'flex', gap: 8 }}>
-        <M.button whileTap={{ scale: .96 }} onClick={() => go('signal-cards')}
+      <div style={{ flexShrink: 0, padding: `8px 18px max(22px, calc(env(safe-area-inset-bottom,0px) + 12px))`, display: 'flex', gap: 8 }}>
+        <M.button whileTap={{ scale: .96 }} onClick={() => { haptic('light'); go('signal-cards') }}
           style={{ flex: 1, padding: '13px', borderRadius: 14, cursor: 'pointer', border: 'none',
             background: 'rgba(255,255,255,.05)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
@@ -297,7 +298,7 @@ export default function Paywall() {
           </svg>
           <span style={{ fontFamily: f, fontWeight: 700, fontSize: 11, color: 'rgba(255,255,255,.32)' }}>Назад</span>
         </M.button>
-        <M.button whileTap={{ scale: .96 }} onClick={() => go('home')}
+        <M.button whileTap={{ scale: .96 }} onClick={() => { haptic('light'); go('home') }}
           style={{ flex: 2, padding: '13px', borderRadius: 14, cursor: 'pointer', border: 'none',
             background: 'rgba(109,40,217,.12)',
             display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

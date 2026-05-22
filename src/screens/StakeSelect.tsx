@@ -65,7 +65,7 @@ export default function StakeSelect() {
         filter:'blur(14px)' }} />
 
       <div style={{ flex:1, display:'flex', flexDirection:'column',
-        padding:'58px 20px 28px', gap:0, overflowY:'auto' }}>
+        padding:'var(--header-top) 20px max(28px, calc(env(safe-area-inset-bottom,0px) + 16px))', gap:0, overflowY:'auto' }}>
 
         {/* Heading */}
         <M.h2
