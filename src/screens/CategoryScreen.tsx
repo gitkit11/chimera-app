@@ -19,6 +19,9 @@ import lionIcon   from '../assets/agents/lion.svg'
 import goatIcon   from '../assets/agents/goat.svg'
 import snakeIcon  from '../assets/agents/snake.svg'
 import shadowIcon from '../assets/agents/shadow.svg'
+import speed210Bg from '../assets/bg/speed_210.png'
+import speed280Bg from '../assets/bg/speed_280.png'
+import speed340Bg from '../assets/bg/speed_340.png'
 
 const M = motion as any
 const f    = "'Clash Display','Unbounded',sans-serif"
@@ -111,7 +114,7 @@ const ALL_CARDS: Record<string, Card[]> = {
   'home-express': [
     { id:'exp-1', cardType:'express', sport:'football', tag:'Экспресс ×2 · Норм. риск', home:'Real + PSG', away:'',
       rec:'×3.85', odds:'3.85', ev:'+22%', score:88, rarity:'epic', time:'21:00', date:'15 мая',
-      bg:`${import.meta.env.BASE_URL}bg/speed_210.png`, homeLogo:null, awayLogo:null,
+      bg:speed210Bg, homeLogo:null, awayLogo:null,
       hitPct:61, maxBet:'5%', correlation:'низкая',
       legs:[
         {sport:'football', match:'Real Madrid vs Bayern', pick:'П1',   odds:'1.78', conf:82, color:'#34D399'},
@@ -126,7 +129,7 @@ const ALL_CARDS: Record<string, Card[]> = {
 
     { id:'exp-2', cardType:'express', sport:'basketball', tag:'Экспресс ×3 · Средний риск', home:'NBA тройник', away:'',
       rec:'×5.20', odds:'5.20', ev:'+18%', score:78, rarity:'legend', time:'04:00', date:'16 мая',
-      bg:`${import.meta.env.BASE_URL}bg/speed_280.png`, homeLogo:null, awayLogo:null,
+      bg:speed280Bg, homeLogo:null, awayLogo:null,
       hitPct:42, maxBet:'3%', correlation:'средняя',
       legs:[
         {sport:'basketball', match:'Boston vs Miami',     pick:'П1',       odds:'1.65', conf:78, color:'#F97316'},
@@ -142,7 +145,7 @@ const ALL_CARDS: Record<string, Card[]> = {
 
     { id:'exp-3', cardType:'express', sport:'football', tag:'Экспресс ×4 · Сильный риск', home:'Мега экспресс', away:'',
       rec:'×9.40', odds:'9.40', ev:'+15%', score:71, rarity:'chimera', time:'21:00', date:'15 мая',
-      bg:`${import.meta.env.BASE_URL}bg/speed_340.png`, homeLogo:null, awayLogo:null,
+      bg:speed340Bg, homeLogo:null, awayLogo:null,
       hitPct:24, maxBet:'2%', correlation:'средняя',
       legs:[
         {sport:'football',    match:'Real Madrid vs Bayern',  pick:'П1',   odds:'1.78', conf:82, color:'#EF4444'},
@@ -349,7 +352,11 @@ export default function CategoryScreen() {
     const accentShadow = isWeek ? 'rgba(234,179,8,.25)' : isExpress ? 'rgba(249,115,22,.2)' : isTotal ? 'rgba(52,211,153,.15)' : 'rgba(139,92,246,.25)'
 
     return (
-      <div style={{ height:'100%', position:'relative', background:'#04020D', overflow:'hidden' }}>
+      <div style={{ height:'100%', position:'relative', overflow:'hidden',
+        background: isWeek    ? 'linear-gradient(160deg,#1a0f00,#0d0800)'
+                  : isExpress ? 'linear-gradient(160deg,#1a0800,#431407)'
+                  : isTotal   ? 'linear-gradient(160deg,#001a0f,#022c22)'
+                  :             'linear-gradient(160deg,#0D0525,#2D1065)' }}>
         <img src={c.bg} alt="" style={{ position:'absolute',inset:0,width:'100%',height:'100%',
           objectFit:'cover',objectPosition:'center top',
           filter:`brightness(${flipped?.3:.6}) saturate(.65)` }} />
@@ -743,7 +750,7 @@ export default function CategoryScreen() {
                 ))}
               </M.div>
 
-              <div style={{ width:'100%',height:1,background:`linear-gradient(90deg,transparent,${accent}55,transparent)`,marginBottom:18 }}/>
+              <div style={{ width:'100%',height:2,background:`linear-gradient(90deg,transparent,${accent}88 30%,${accent} 50%,${accent}88 70%,transparent)`,marginBottom:18,borderRadius:1 }}/>
 
               {/* Verdict */}
               <M.div initial={{opacity:0}} animate={{opacity:1}} transition={{delay:.45}}
@@ -757,8 +764,8 @@ export default function CategoryScreen() {
               {AGENTS_META.slice(0,3).map((a,i)=>(
                 <M.div key={i} initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{delay:.35+i*.08}}
                   style={{ width:'100%',marginBottom:8,padding:'11px 14px',borderRadius:13,
-                    background:a.verdict?`${accent}1a`:'rgba(255,255,255,.04)',
-                    border:`1px solid ${a.verdict?`${accent}44`:'rgba(255,255,255,.07)'}` }}>
+                    background:a.verdict?`${accent}22`:'rgba(255,255,255,.07)',
+                    border:`1px solid ${a.verdict?`${accent}55`:'rgba(255,255,255,.1)'}` }}>
                   <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:6 }}>
                     <img src={a.icon} width={32} height={32} alt="" style={{ borderRadius:8,flexShrink:0 }}/>
                     <div>

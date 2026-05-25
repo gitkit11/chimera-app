@@ -4,8 +4,8 @@ import { useState, useRef } from 'react'
 import { useFunnel } from '../store/funnel'
 import { haptic } from '../haptic'
 import logoIcon    from '../assets/icon_dark2.png'
-const sniperBg    = `${import.meta.env.BASE_URL}bg/sniper_photo.png`
-const goldenCupBg = `${import.meta.env.BASE_URL}bg/ak47_gold.png`
+import sniperBg    from '../assets/bg/sniper_photo.png'
+import goldenCupBg from '../assets/bg/ak47_gold.png'
 import signalsIcon  from '../assets/menu/signals.svg'
 import expressIcon  from '../assets/menu/express.svg'
 import totalsIcon   from '../assets/menu/totals.svg'
