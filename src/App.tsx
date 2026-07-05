@@ -269,8 +269,14 @@ export default function App() {
       if (u.isPro) {
         const FUNNEL: Screen[] = ['splash', 'cover', 'stake-select',
           'card-reveal', 'signal-cards', 'paywall', 'verify', 'stawki-steps']
-        const cur = useFunnel.getState().screen
-        if (FUNNEL.includes(cur)) useFunnel.getState().go('home')
+        const jump = () => {
+          const cur = useFunnel.getState().screen
+          if (FUNNEL.includes(cur)) useFunnel.getState().go('home')
+        }
+        // Со сплэша не выдёргиваем мгновенно: даём логотипу показаться
+        // ~1.4 сек (авторизация теперь быстрая — прыжок был раньше анимации)
+        if (useFunnel.getState().screen === 'splash') setTimeout(jump, 1400)
+        else jump()
       }
     }).catch(() => {})
   }, [])
