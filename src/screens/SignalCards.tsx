@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { api, type FunnelSignal } from '../api'
+import { api, type ApiSignal, type FunnelSignal } from '../api'
 import { useFunnel } from '../store/funnel'
 import { haptic } from '../haptic'
 import footballIcon   from '../assets/icons/football.svg'
@@ -183,8 +183,14 @@ export default function SignalCards() {
   // Реальный бесплатный сигнал (банкер дня) — юзер должен открыть ставку,
   // которая реально зайдёт, а не декорацию
   const [realSig, setRealSig] = useState<FunnelSignal | null>(null)
+  const [realCard, setRealCard] = useState<ApiSignal | null>(null)
   useEffect(() => {
     api.funnelSignal().then(s => { if (s && s.team1) setRealSig(s) }).catch(() => {})
+    // Полная карточка банкера (тексты агентов, minOdds) — для флипа
+    api.botSignals().then(list => {
+      const b = list.find(s => s.isBanker) || list[0]
+      if (b) setRealCard(b)
+    }).catch(() => {})
   }, [])
 
   const pick = (i: number) => {
@@ -217,7 +223,33 @@ export default function SignalCards() {
       { label: realSig.prediction, pct: realSig.confidence || 60, color: '#A78BFA' },
       { label: 'Против', pct: 100 - (realSig.confidence || 60), color: '#475569' },
     ],
+    // Никакого муляжа в деталях: реальные метрики вместо xG Реала
+    stats: [
+      { l: 'Уверенность', v: `${realSig.confidence || 60}%`, hi: true },
+      { l: 'Кэф',         v: realSig.odds ? realSig.odds.toFixed(2) : '—' },
+      { l: 'Лига',        v: realSig.league || '—' },
+    ],
+    lineMove: { open: realSig.odds ? realSig.odds.toFixed(2) : base.odds,
+                curr: realSig.odds ? realSig.odds.toFixed(2) : base.odds,
+                delta: '0.00', dir: 'down' as const, note: 'Живая линия от бота' },
   } : base
+
+  // Флип-сторона: реальные тексты агентов банкера вместо заготовки про Реал
+  const aiData = (realCard && realCard.agents) ? {
+    agents: [
+      { role: 'ST', name: 'Статистик', icon: lionIcon,  accent: '#F59E0B',
+        text: realCard.agents.statistician || AI_DATA.agents[0].text, verdict: false },
+      { role: 'SC', name: 'Скаут',     icon: goatIcon,  accent: '#94A3B8',
+        text: realCard.agents.scout || AI_DATA.agents[1].text, verdict: false },
+      { role: 'AR', name: 'Арбитр',    icon: snakeIcon, accent: '#10B981',
+        text: realCard.agents.arbiter || AI_DATA.agents[2].text, verdict: true },
+    ],
+    total: realCard.minOdds
+      ? { rec: `Кэф от ${realCard.minOdds}`, odds: String(realCard.odds), ev: `+${realCard.ev}%`,
+          note: 'Ставь только если твоя БК даёт не ниже' }
+      : AI_DATA.total,
+    shadow: realCard.agents.llama || AI_DATA.shadow,
+  } : AI_DATA
 
   // ── DETAIL SCREEN ──────────────────────────────────────────────────────
   if (expanded && c) {
@@ -379,7 +411,7 @@ export default function SignalCards() {
             {/* Agent icons — bigger with names */}
             <M.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .3 }}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginTop: 10, marginBottom: 20 }}>
-              {[...AI_DATA.agents, { icon: shadowIcon, accent: '#60A5FA', name: 'Shadow' }].map((a, i) => (
+              {[...aiData.agents, { icon: shadowIcon, accent: '#60A5FA', name: 'Shadow' }].map((a, i) => (
                 <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
                   <div style={{ position: 'relative' }}>
                     <img src={a.icon} width={40} height={40} alt="" style={{ borderRadius: 10, boxShadow: `0 0 12px ${a.accent}66` }} />
@@ -401,7 +433,7 @@ export default function SignalCards() {
               style={{ width: '100%', textAlign: 'center', marginBottom: 16 }}>
               <div style={{ fontFamily: mono, fontSize: 8, fontWeight: 700, letterSpacing: '.3em', textTransform: 'uppercase' as const, color: 'rgba(167,139,250,.55)', marginBottom: 8 }}>Вердикт арбитра</div>
               <div style={{ fontFamily: f, fontWeight: 700, fontSize: 15, lineHeight: 1.45, color: '#FAFAF8' }}>
-                {AI_DATA.agents.find(a => a.verdict)?.text}
+                {aiData.agents.find(a => a.verdict)?.text}
               </div>
             </M.div>
 
@@ -410,7 +442,7 @@ export default function SignalCards() {
               style={{ width: '100%', padding: '9px 13px', borderRadius: 11, borderLeft: '2px solid rgba(96,165,250,.45)',
                 background: 'rgba(59,130,246,.06)', marginBottom: 12 }}>
               <div style={{ fontFamily: mono, fontSize: 7.5, color: 'rgba(96,165,250,.65)', letterSpacing: '.18em', textTransform: 'uppercase' as const, marginBottom: 4 }}>Shadow · Llama 70B</div>
-              <div style={{ fontFamily: mono, fontSize: 10, color: 'rgba(255,255,255,.58)', lineHeight: 1.5 }}>{AI_DATA.shadow}</div>
+              <div style={{ fontFamily: mono, fontSize: 10, color: 'rgba(255,255,255,.58)', lineHeight: 1.5 }}>{aiData.shadow}</div>
             </M.div>
 
             {/* Alt bet */}
@@ -420,10 +452,10 @@ export default function SignalCards() {
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ fontFamily: mono, fontSize: 7, letterSpacing: '.2em', textTransform: 'uppercase' as const, color: 'rgba(52,211,153,.55)', marginBottom: 3 }}>Альт. ставка</div>
-                <div style={{ fontFamily: f, fontWeight: 900, fontSize: 16, color: '#34D399' }}>{AI_DATA.total.rec}</div>
+                <div style={{ fontFamily: f, fontWeight: 900, fontSize: 16, color: '#34D399' }}>{aiData.total.rec}</div>
               </div>
               <div style={{ display: 'flex', gap: 12 }}>
-                {[['КОЭФ', AI_DATA.total.odds, '#FAFAF8'], ['EV', AI_DATA.total.ev, '#34D399']].map(([l,v,col]) => (
+                {[['КОЭФ', aiData.total.odds, '#FAFAF8'], ['EV', aiData.total.ev, '#34D399']].map(([l,v,col]) => (
                   <div key={l as string} style={{ textAlign: 'right' }}>
                     <div style={{ fontFamily: mono, fontSize: 7, color: 'rgba(255,255,255,.28)', marginBottom: 2 }}>{l}</div>
                     <div style={{ fontFamily: f, fontWeight: 800, fontSize: 15, color: col as string }}>{v}</div>
@@ -671,7 +703,7 @@ export default function SignalCards() {
                   <img src={snakeIcon} width={140} height={140} alt="" style={{ marginLeft: -20 }} />
                 </div>
                 <div style={{ fontFamily: mono, fontSize: 10, fontWeight: 700, letterSpacing: '.28em', textTransform: 'uppercase' as const, color: '#A78BFA', position: 'relative' }}>◆ AI Разбор · {c.home} vs {c.away}</div>
-                {AI_DATA.agents.map((a, ai) => (
+                {aiData.agents.map((a, ai) => (
                   <div key={ai} style={{ padding: '12px 14px', borderRadius: 14, background: a.verdict ? 'rgba(167,139,250,.1)' : 'rgba(255,255,255,.04)', border: `1px solid ${a.verdict ? 'rgba(167,139,250,.38)' : 'rgba(255,255,255,.07)'}`, position: 'relative' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 7 }}>
                       <img src={a.icon} width={34} height={34} alt="" style={{ borderRadius: 8, flexShrink: 0 }} />
@@ -686,7 +718,7 @@ export default function SignalCards() {
                 <div style={{ padding: '12px 14px', borderRadius: 14, background: 'rgba(52,211,153,.08)', border: '1px solid rgba(52,211,153,.22)', position: 'relative' }}>
                   <div style={{ fontFamily: mono, fontSize: 8, letterSpacing: '.2em', textTransform: 'uppercase' as const, color: 'rgba(52,211,153,.65)', marginBottom: 6 }}>Альт. ставка · Тотал</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                    <span style={{ fontFamily: f, fontWeight: 900, fontSize: 17, color: '#34D399' }}>{AI_DATA.total.rec}</span>
+                    <span style={{ fontFamily: f, fontWeight: 900, fontSize: 17, color: '#34D399' }}>{aiData.total.rec}</span>
                     <span style={{ fontFamily: f, fontWeight: 700, fontSize: 16 }}>@ {AI_DATA.total.odds}</span>
                     <span style={{ fontFamily: mono, fontSize: 10, color: '#34D399' }}>{AI_DATA.total.ev}</span>
                   </div>
@@ -694,7 +726,7 @@ export default function SignalCards() {
                 </div>
                 <div style={{ padding: '10px 14px', borderRadius: 12, borderLeft: '2px solid #6B89AB', background: 'rgba(58,79,107,.12)', position: 'relative' }}>
                   <div style={{ fontFamily: mono, fontSize: 8, color: '#8FA8C2', letterSpacing: '.2em', textTransform: 'uppercase' as const, marginBottom: 4 }}>Shadow (Llama 70B)</div>
-                  <div style={{ fontFamily: mono, fontSize: 11, color: 'rgba(255,255,255,.6)', lineHeight: 1.5 }}>{AI_DATA.shadow}</div>
+                  <div style={{ fontFamily: mono, fontSize: 11, color: 'rgba(255,255,255,.6)', lineHeight: 1.5 }}>{aiData.shadow}</div>
                 </div>
               </div>
             )}
