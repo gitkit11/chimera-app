@@ -54,7 +54,15 @@ export const useFunnel = create<FunnelState>((set, get) => ({
   funnelSignalIdx: null,
   viewedCardIds: [],
   expandedCardIds: [],
-  go: (screen) => set({ screen }),
+  go: (screen) => set(s => {
+    // Pro никогда не попадает в онбординг-воронку — любой переход туда
+    // (включая кнопку «назад» с главного экрана) уводит на home.
+    // paywall не блокируем: Pro может открыть его для продления.
+    const FUNNEL: Screen[] = ['cover', 'stake-select', 'card-reveal',
+                              'signal-cards', 'verify', 'stawki-steps']
+    if (s.isPro && FUNNEL.includes(screen)) return { screen: 'home' as Screen }
+    return { screen }
+  }),
   setStake: (stake) => set({ stake }),
   addFavorite: (id) => set(s => ({ favorites: s.favorites.includes(id) ? s.favorites : [...s.favorites, id] })),
   removeFavorite: (id) => set(s => ({ favorites: s.favorites.filter(f => f !== id) })),
