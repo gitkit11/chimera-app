@@ -32,6 +32,22 @@ async function get<T>(path: string): Promise<T> {
   return res.json()
 }
 
+async function post<T>(path: string, body: unknown): Promise<T> {
+  await _ready
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-init-data': initData(),
+      'ngrok-skip-browser-warning': '1',
+      'cf-skip-browser-warning': '1',
+    },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error(`API ${path} → ${res.status}`)
+  return res.json()
+}
+
 export interface UserInfo {
   user_id: number
   username: string
@@ -66,6 +82,20 @@ export const api = {
   botTotals:  () => get<ApiSignal[]>('/api/totals'),
   botWeek:    () => get<ApiSignal | null>('/api/week'),
   botStats:   () => get<ApiStats>('/api/stats'),
+  // Избранное: сервер узнаёт юзера по x-init-data (подпись Telegram WebApp).
+  // toggle → бот пришлёт уведомление об исходе матча; botFavorites отдаёт и
+  // рассчитанные матчи за последние 12ч (result: win/lose + score)
+  toggleFavorite: (sport: string, home: string, away: string) =>
+    post<{ ok: boolean; favorited?: boolean }>('/api/favorite', { sport, home, away }),
+  botFavorites: () => get<ApiFavorite[]>('/api/favorites'),
+}
+
+export interface ApiFavorite {
+  sport: string; sportIcon?: string
+  team1: string; team2: string
+  prediction: string; odds: number | null
+  matchTime: string; league: string
+  result?: 'win' | 'lose'; score?: string
 }
 
 export interface ApiSignal {
@@ -78,6 +108,9 @@ export interface ApiSignal {
   avg_total?: number; avg_total_label?: string
   over_pct?: number; trend?: string; reasoning?: string
   total_line?: number; total_direction?: 'over' | 'under'; prob_over?: number
+  isBanker?: boolean       // банкер дня: максимум одна карточка
+  minOdds?: number | null  // минимальный кэф своей БК, ниже — не ставить
+  lineMove?: number | null // движение линии, >0 = умные деньги за нас
 }
 
 export interface ApiExpress {

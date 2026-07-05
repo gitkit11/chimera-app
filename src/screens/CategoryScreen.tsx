@@ -27,7 +27,7 @@ import football2Bg from '../assets/bg/football2.jpg'
 import basketballBg from '../assets/bg/basketball.jpg'
 import tennisBg    from '../assets/bg/tennis.jpg'
 import esportsBg   from '../assets/bg/esports.jpg'
-import { api, type ApiSignal, type ApiExpress } from '../api'
+import { api, type ApiSignal, type ApiExpress, type ApiFavorite } from '../api'
 
 const M = motion as any
 const f    = "'Clash Display','Unbounded',sans-serif"
@@ -71,149 +71,10 @@ type Card = {
   altBet: { rec: string; odds: string; ev: string; note: string }
   legs?: ExpressLeg[]; hitPct?: number; maxBet?: string; correlation?: string
   btts?: number
+  isBanker?: boolean        // 🏦 банкер дня (максимум один)
+  minOdds?: number | null   // минимальный кэф своей БК для ставки
 }
 
-const ALL_CARDS: Record<string, Card[]> = {
-  'home-signals': [
-    { id:'sig-1', cardType:'signal', sport:'football', tag:'La Liga', home:'Real Madrid', away:'Barcelona',
-      rec:'П1', odds:'2.10', ev:'+18%', score:91, rarity:'chimera', time:'21:00', date:'15 мая', bg:footballBg, homeLogo:null, awayLogo:null,
-      probs:[{label:'П1',pct:64,color:'#A78BFA'},{label:'X',pct:19,color:'#64748B'},{label:'П2',pct:17,color:'#475569'}],
-      stats:[{l:'xG',v:'2.3 — 1.1',hi:true},{l:'ELO',v:'+112'},{l:'Форма',v:'WWDWW vs LWWDL'}],
-      lineMove:{open:'2.25',curr:'2.10',delta:'-0.15',dir:'down',note:'Шарп-деньги на П1'},
-      agentTexts:['xG 2.3 vs 1.1. ELO +112. 8 побед дома подряд.','Барса без Педри. Мотивация Реала максимальная.','Рынок 54% / Chimera 72%. Дивергенция +18pp.'],
-      shadow:'Согласна по основному исходу. Тотал тоже интересен — высокий темп.',
-      altBet:{rec:'ТБ 2.5',odds:'1.68',ev:'+9%',note:'Обе забивали в 8 из 10 матчей'} },
-    { id:'sig-2', cardType:'signal', sport:'tennis', tag:'ATP Finals', home:'Djokovic', away:'Alcaraz',
-      rec:'П1', odds:'1.65', ev:'+11%', score:84, rarity:'epic', time:'18:30', date:'15 мая', bg:football2Bg, homeLogo:null, awayLogo:null,
-      probs:[{label:'П1',pct:61,color:'#C084FC'},{label:'П2',pct:39,color:'#475569'}],
-      stats:[{l:'ELO',v:'+89',hi:true},{l:'H2H',v:'7-3'},{l:'Форма',v:'WWWLW vs WLWWL'}],
-      lineMove:{open:'1.80',curr:'1.65',delta:'-0.15',dir:'down',note:'Стабильный приток'},
-      agentTexts:['ELO +89. H2H 7-3. Форма отличная.','Алькарас устал после Мадрида.','Рынок 52% / Chimera 68%. EV +11%.'],
-      shadow:'Согласна. Джокович лучше на харде в решающих матчах.',
-      altBet:{rec:'Тотал 3 сета',odds:'1.72',ev:'+8%',note:'Алькарас любит затягивать'} },
-    { id:'sig-3', cardType:'signal', sport:'cs2', tag:'IEM', home:'NaVi', away:'FaZe',
-      rec:'П1', odds:'1.74', ev:'+13%', score:79, rarity:'legend', time:'17:00', date:'15 мая', bg:esportsBg, homeLogo:null, awayLogo:null,
-      probs:[{label:'П1',pct:56,color:'#F97316'},{label:'П2',pct:44,color:'#475569'}],
-      stats:[{l:'ELO NaVi',v:'+67',hi:true},{l:'Рейтинг',v:'#3 vs #7'},{l:'Форма',v:'WWLWW vs LWWLW'}],
-      lineMove:{open:'1.68',curr:'1.74',delta:'+0.06',dir:'up',note:'Публика на FaZe'},
-      agentTexts:['ELO +67. NaVi #3 в мире. 5 из 6 карт.','s1mple в топ-форме. FaZe без AWP.','Рынок на FaZe, Chimera видит NaVi. +13pp.'],
-      shadow:'NaVi сильнее тактически. Линия не отражает расклад.',
-      altBet:{rec:'NaVi 2-0',odds:'2.20',ev:'+14%',note:'NaVi выигрывали 4 из 5 BO3'} },
-    { id:'sig-4', cardType:'signal', sport:'basketball', tag:'NBA', home:'Boston', away:'Denver',
-      rec:'П1 -4.5', odds:'1.91', ev:'+17%', score:82, rarity:'rare', time:'04:30', date:'16 мая', bg:basketballBg, homeLogo:null, awayLogo:null,
-      probs:[{label:'П1',pct:58,color:'#60A5FA'},{label:'П2',pct:42,color:'#475569'}],
-      stats:[{l:'Темп BOS',v:'+3.8',hi:true},{l:'ATS',v:'6-2 Boston'},{l:'Форма',v:'WWLWW vs LWLWL'}],
-      lineMove:{open:'2.00',curr:'1.91',delta:'-0.09',dir:'down',note:'Деньги на фаворита'},
-      agentTexts:['Темп Boston +3.8. ATS 6-2. Защита #1.','Дома Boston непобедимы. Denver устал.','Рынок 55% / Chimera 70%. ATS-фора оправдана.'],
-      shadow:'Согласна. Тейтум в форме жизни, Йокич ограничен.',
-      altBet:{rec:'ТБ 218.5',odds:'1.88',ev:'+10%',note:'Обе набирают 110+'} },
-    { id:'sig-5', cardType:'signal', sport:'hockey', tag:'NHL', home:'Colorado', away:'Edmonton',
-      rec:'ТМ 5.5', odds:'1.88', ev:'+15%', score:77, rarity:'epic', time:'03:00', date:'16 мая', bg:tennisBg, homeLogo:null, awayLogo:null,
-      probs:[{label:'ТМ',pct:52,color:'#C084FC'},{label:'ТБ',pct:48,color:'#475569'}],
-      stats:[{l:'Тотал ср.',v:'5.2 гола',hi:true},{l:'ELO',v:'+28'},{l:'Форма',v:'WDWLW vs WWWLW'}],
-      lineMove:{open:'1.92',curr:'1.88',delta:'-0.04',dir:'down',note:'Небольшой интерес'},
-      agentTexts:['Ср. тотал 5.2. Оба голкипера нестабильны.','Мотивация высокая. Атакующий хоккей.','ТМ 5.5 в 7 из 10 — статистика на стороне.'],
-      shadow:'Согласна, тотал меньше разумен. Ставить осторожно.',
-      altBet:{rec:'Colorado победит',odds:'2.05',ev:'+8%',note:'Домашнее преимущество'} },
-  ],
-
-  'home-express': [
-    { id:'exp-1', cardType:'express', sport:'football', tag:'Экспресс ×2 · Норм. риск', home:'Real + PSG', away:'',
-      rec:'×3.85', odds:'3.85', ev:'+22%', score:88, rarity:'epic', time:'21:00', date:'15 мая',
-      bg:speed210Bg, homeLogo:null, awayLogo:null,
-      hitPct:61, maxBet:'5%', correlation:'низкая',
-      legs:[
-        {sport:'football', match:'Real Madrid vs Bayern', pick:'П1',   odds:'1.78', conf:82, color:'#34D399'},
-        {sport:'football', match:'PSG vs Arsenal',        pick:'П1',   odds:'2.16', conf:74, color:'#6EE7B7'},
-      ],
-      probs:[{label:'Hit',pct:61,color:'#34D399'},{label:'Miss',pct:39,color:'#475569'}],
-      stats:[{l:'EV экспресса',v:'+22%',hi:true},{l:'Независимость',v:'высокая'},{l:'Рекоменд.',v:'5% банка'}],
-      lineMove:{open:'4.10',curr:'3.85',delta:'-0.25',dir:'down',note:'Оба события движутся'},
-      agentTexts:['EV +22% при независимых событиях. Реал и ПСЖ в форме.','Составы без потерь. Оба клуба мотивированы.','Нормальный риск. Корреляция низкая. Ставить до 5% банка.'],
-      shadow:'Согласна. Хороший выбор для умеренного экспресса.',
-      altBet:{rec:'Real Madrid П1',odds:'1.78',ev:'+9%',note:'Одиночная ставка надёжнее'} },
-
-    { id:'exp-2', cardType:'express', sport:'basketball', tag:'Экспресс ×3 · Средний риск', home:'NBA тройник', away:'',
-      rec:'×5.20', odds:'5.20', ev:'+18%', score:78, rarity:'legend', time:'04:00', date:'16 мая',
-      bg:speed280Bg, homeLogo:null, awayLogo:null,
-      hitPct:42, maxBet:'3%', correlation:'средняя',
-      legs:[
-        {sport:'basketball', match:'Boston vs Miami',     pick:'П1',       odds:'1.65', conf:78, color:'#F97316'},
-        {sport:'basketball', match:'Lakers vs Denver',    pick:'ТБ 218.5', odds:'1.88', conf:71, color:'#FB923C'},
-        {sport:'basketball', match:'Warriors vs Memphis', pick:'П1',       odds:'1.72', conf:69, color:'#FED7AA'},
-      ],
-      probs:[{label:'Hit',pct:42,color:'#F97316'},{label:'Miss',pct:58,color:'#475569'}],
-      stats:[{l:'EV экспресса',v:'+18%',hi:true},{l:'Темп',v:'TOP-5 все три'},{l:'Рекоменд.',v:'3% банка'}],
-      lineMove:{open:'5.50',curr:'5.20',delta:'-0.30',dir:'down',note:'Тотальщики заходят'},
-      agentTexts:['3 матча НБА с высоким темпом. Средняя зависимость событий.','Все три без ключевых травм. Мотивация высокая.','Средний риск. Ставить не более 3% банка. EV +18%.'],
-      shadow:'Агрессивнее нормы. Контролируй размер ставки.',
-      altBet:{rec:'Boston П1',odds:'1.65',ev:'+8%',note:'Безопаснее одиночная'} },
-
-    { id:'exp-3', cardType:'express', sport:'football', tag:'Экспресс ×4 · Сильный риск', home:'Мега экспресс', away:'',
-      rec:'×9.40', odds:'9.40', ev:'+15%', score:71, rarity:'chimera', time:'21:00', date:'15 мая',
-      bg:speed340Bg, homeLogo:null, awayLogo:null,
-      hitPct:24, maxBet:'2%', correlation:'средняя',
-      legs:[
-        {sport:'football',    match:'Real Madrid vs Bayern',  pick:'П1',   odds:'1.78', conf:82, color:'#EF4444'},
-        {sport:'tennis',      match:'Djokovic vs Alcaraz',    pick:'П1',   odds:'1.65', conf:76, color:'#F87171'},
-        {sport:'cs2',         match:'NaVi vs FaZe',           pick:'П1',   odds:'1.74', conf:71, color:'#FCA5A5'},
-        {sport:'basketball',  match:'Boston vs Miami',        pick:'П1 -4.5',odds:'1.91',conf:68,color:'#FECACA'},
-      ],
-      probs:[{label:'Hit',pct:24,color:'#EF4444'},{label:'Miss',pct:76,color:'#475569'}],
-      stats:[{l:'EV экспресса',v:'+15%',hi:true},{l:'Макс. потеря',v:'2% банка'},{l:'Рекоменд.',v:'1-2% банка'}],
-      lineMove:{open:'10.20',curr:'9.40',delta:'-0.80',dir:'down',note:'Интерес к экспрессу'},
-      agentTexts:['4 события. Hit% = 24%. Высокая дисперсия. EV +15%.','Все фавориты. Но риск накопления ошибок высокий.','Экстремальный экспресс. Только 1-2% банка. Для азарта.'],
-      shadow:'Опасная ставка. Высокая дисперсия. Только малая часть банка.',
-      altBet:{rec:'Real Madrid П1',odds:'1.78',ev:'+9%',note:'Лучше одиночная из этого листа'} },
-  ],
-
-  'home-totals': [
-    { id:'tot-1', cardType:'total', sport:'football', tag:'La Liga', home:'Atletico', away:'Sevilla',
-      rec:'ТМ 2.5', odds:'1.72', ev:'+9%', score:79, rarity:'epic', time:'20:00', date:'15 мая',
-      bg:footballBg, homeLogo:null, awayLogo:null,
-      btts:58,
-      probs:[{label:'ТМ',pct:62,color:'#34D399'},{label:'ТБ',pct:38,color:'#475569'}],
-      stats:[{l:'xG avg',v:'1.4 — 1.1',hi:true},{l:'Ср. тотал',v:'1.9 гола'},{l:'ТМ в матчах',v:'6 из 8'},{l:'Темп',v:'низкий'}],
-      lineMove:{open:'1.78',curr:'1.72',delta:'-0.06',dir:'down',note:'Деньги на малый тотал'},
-      agentTexts:['xG 1.4 и 1.1. Atletico закрывается. Пуассон: ТМ 2.5 — 62%.','Севилья без Де Томас. Осторожный план игры обоих тренеров.','Рынок видит ТМ 2.5. Chimera подтверждает. EV +9%.'],
-      shadow:'Согласна. Матч скорее всего закончится 1-0 или 0-0.',
-      altBet:{rec:'0-0 / 1-0',odds:'3.10',ev:'+11%',note:'Счёт с малым тоталом'} },
-    { id:'tot-2', cardType:'total', sport:'basketball', tag:'NBA', home:'LAL', away:'GSW',
-      rec:'ТБ 224.5', odds:'1.90', ev:'+14%', score:83, rarity:'legend', time:'03:30', date:'16 мая',
-      bg:basketballBg, homeLogo:null, awayLogo:null,
-      probs:[{label:'ТБ',pct:67,color:'#F97316'},{label:'ТМ',pct:33,color:'#475569'}],
-      stats:[{l:'Ср. тотал',v:'228.4 очка',hi:true},{l:'ТБ в матчах',v:'4 из 5'},{l:'Темп LAL',v:'ТОП-5'},{l:'Темп GSW',v:'ТОП-3'}],
-      lineMove:{open:'220.5',curr:'224.5',delta:'+4.0',dir:'up',note:'Линия растёт — публика давит'},
-      agentTexts:['Ср. тотал 228.4 в последних 5 встречах. Темп высокий.','LAL и GSW атакуют. Оба играют без защиты.','ТБ 224.5: EV +14% сохраняется несмотря на рост линии.'],
-      shadow:'Согласна. Матч будет открытым с высоким темпом.',
-      altBet:{rec:'LAL ТБ 112.5',odds:'1.88',ev:'+9%',note:'Lakers набирают 115+ в 70%'} },
-    { id:'tot-3', cardType:'total', sport:'hockey', tag:'NHL', home:'Tampa', away:'Florida',
-      rec:'ТБ 5.5', odds:'1.85', ev:'+12%', score:80, rarity:'epic', time:'02:00', date:'16 мая',
-      bg:tennisBg, homeLogo:null, awayLogo:null,
-      probs:[{label:'ТБ',pct:58,color:'#C084FC'},{label:'ТМ',pct:42,color:'#475569'}],
-      stats:[{l:'Тотал ср.',v:'6.1 гола',hi:true},{l:'ТБ H2H',v:'5 из 7'},{l:'Голы Tampa',v:'3.4/игру'},{l:'Голы Florida',v:'3.1/игру'}],
-      lineMove:{open:'1.90',curr:'1.85',delta:'-0.05',dir:'down',note:'Тихий интерес к ТБ'},
-      agentTexts:['Ср. тотал 6.1. H2H: 5 из 7 матчей ТБ 5.5.','Оба голкипера нестабильны. Атакующий хоккей.','ТБ 5.5 исторически подтверждён. EV +12%.'],
-      shadow:'Согласна. Матч Тампа-Флорида всегда результативный.',
-      altBet:{rec:'Обе забьют 3+',odds:'2.10',ev:'+10%',note:'Оба клуба в топ-5 по голам'} },
-  ],
-
-  'home-week': [
-    { id:'week-1', cardType:'week', sport:'football', tag:'CHIMERA · Неделя', home:'Man City', away:'Arsenal',
-      rec:'П1', odds:'2.35', ev:'+21%', score:94, rarity:'chimera', time:'17:30', date:'18 мая',
-      bg:footballBg, homeLogo:null, awayLogo:null,
-      probs:[{label:'П1',pct:67,color:'#EAB308'},{label:'X',pct:18,color:'#64748B'},{label:'П2',pct:15,color:'#475569'}],
-      stats:[{l:'xG',v:'2.7 — 1.2',hi:true},{l:'ELO',v:'+134'},{l:'Форма',v:'WWWWW vs LWWDW'}],
-      lineMove:{open:'2.55',curr:'2.35',delta:'-0.20',dir:'down',note:'Шарпы активно заходят'},
-      agentTexts:['xG 2.7 vs 1.2. ELO +134. 5 побед подряд дома.','Де Брёйне вернулся. Арсенал без Одегора.','Дивергенция рынок/Chimera = 21pp. Лучший сигнал недели.'],
-      shadow:'Полностью согласна. Ман Сити — фаворит недели без сомнений.',
-      altBet:{rec:'City ТБ 1.5',odds:'1.48',ev:'+7%',note:'City забивает 2+ в 90% дома'} },
-  ],
-
-  'home-favorites': [],
-}
-
-// ── Live data mapping ─────────────────────────────────────────────────────────
 const SPORT_BG: Record<string, string> = {
   football: footballBg, basketball: basketballBg,
   tennis: football2Bg, cs2: esportsBg, hockey: tennisBg,
@@ -260,12 +121,50 @@ function mapSignal(s: ApiSignal, cardType: 'signal' | 'total' | 'week'): Card {
     ] : [
       { l: 'Сигналов',   v: `${s.signals_passed ?? '?'}/${s.signals_total ?? 6}`, hi: true },
       { l: 'Уверенность', v: `${conf}%` },
-      { l: 'Лига',       v: s.league },
+      // minOdds — правило для своей БК: кэф ниже порога → не ставить
+      s.minOdds ? { l: 'Ставь от', v: String(s.minOdds), hi: true }
+                : { l: 'Лига', v: s.league },
     ],
-    lineMove: { open: String(s.odds), curr: String(s.odds), delta: '0.00', dir: 'down', note: 'Данные от бота' },
+    // Живое движение линии (lineMove в %%, >0 — кэф упал, умные деньги с нами)
+    lineMove: (s.lineMove !== undefined && s.lineMove !== null && Math.abs(s.lineMove) >= 0.5)
+      ? (() => {
+          const cur  = Number(s.odds) || 0
+          const open = cur * (1 + (s.lineMove as number) / 100)
+          const good = (s.lineMove as number) > 0
+          return { open: open.toFixed(2), curr: cur.toFixed(2),
+            delta: `${cur - open >= 0 ? '+' : ''}${(cur - open).toFixed(2)}`,
+            dir: (good ? 'down' : 'up') as 'down' | 'up',
+            note: good ? 'Умные деньги с нами' : 'Рынок двигается против' }
+        })()
+      : { open: String(s.odds), curr: String(s.odds), delta: '0.00', dir: 'down', note: 'Линия стабильна' },
     agentTexts: [ag.statistician ?? '—', ag.scout ?? '—', ag.arbiter ?? '—'],
     shadow: cardType === 'total' ? (s.reasoning ?? ag.llama ?? '—') : (ag.llama ?? '—'),
     altBet: { rec: '—', odds: '—', ev: '—', note: 'Нет альт. ставки' },
+    isBanker: !!s.isBanker,
+    minOdds: s.minOdds ?? null,
+  }
+}
+
+// Серверное избранное → карточка списка. У рассчитанных матчей вместо лиги —
+// бейдж исхода: «✅ ЗАШЛО · 112:98» (висит 12 часов после результата)
+function mapFavorite(fv: ApiFavorite, i: number): Card {
+  const tag = fv.result
+    ? (fv.result === 'win' ? `✅ ЗАШЛО${fv.score ? ' · ' + fv.score : ''}`
+                           : `❌ НЕ ЗАШЛО${fv.score ? ' · ' + fv.score : ''}`)
+    : fv.league
+  const dt = new Date(fv.matchTime)
+  const ok = !isNaN(dt.getTime())
+  return {
+    id: `srvfav-${i}`, cardType: 'signal', sport: fv.sport, tag,
+    home: fv.team1, away: fv.team2, rec: fv.prediction,
+    odds: fv.odds ? String(fv.odds) : '—', ev: '—', score: 0, rarity: 'rare',
+    time: ok ? dt.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' }) : '—',
+    date: ok ? dt.toLocaleDateString('ru', { day: 'numeric', month: 'short' }) : '—',
+    bg: SPORT_BG[fv.sport] ?? footballBg, homeLogo: null, awayLogo: null,
+    probs: [], stats: [],
+    lineMove: { open: '—', curr: '—', delta: '0', dir: 'down', note: '' },
+    agentTexts: ['—', '—', '—'], shadow: '—',
+    altBet: { rec: '—', odds: '—', ev: '—', note: '—' },
   }
 }
 
@@ -416,6 +315,7 @@ export default function CategoryScreen() {
   const [openCard, setOpenCard] = useState<Card|null>(null)
   const [flipped,  setFlipped]  = useState(false)
   const [liveCards, setLiveCards] = useState<Record<string, Card[]> | null>(null)
+  const [serverFavs, setServerFavs] = useState<Card[]>([])
 
   useEffect(() => {
     Promise.allSettled([
@@ -424,34 +324,53 @@ export default function CategoryScreen() {
       api.botTotals(),
       api.botWeek(),
     ]).then(([sigR, expR, totR, wkR]) => {
-      const upd: Record<string, Card[]> = {}
-      if (sigR.status === 'fulfilled' && sigR.value.length > 0)
+      // Пустой ответ = честный пустой экран. Раньше стояло `.length > 0`,
+      // и при пустоте/ошибке подмешивались захардкоженные демо-карточки.
+      const upd: Record<string, Card[]> = {
+        'home-signals': [], 'home-express': [], 'home-totals': [], 'home-week': [],
+      }
+      if (sigR.status === 'fulfilled')
         upd['home-signals'] = sigR.value.map(s => mapSignal(s, 'signal'))
-      if (expR.status === 'fulfilled' && expR.value.length > 0)
+      if (expR.status === 'fulfilled')
         upd['home-express'] = expR.value.map(mapExpress)
-      if (totR.status === 'fulfilled' && totR.value.length > 0)
+      if (totR.status === 'fulfilled')
         upd['home-totals'] = totR.value.map(s => mapSignal(s, 'total'))
-      if (wkR.status === 'fulfilled' && wkR.value)
+      if (wkR.status === 'fulfilled' && wkR.value && wkR.value.team1)
         upd['home-week'] = [mapSignal(wkR.value, 'week')]
       setLiveCards(upd)
     }).catch(() => setLiveCards({}))
   }, [])
 
+  // Серверное избранное (с исходами за 12ч) — подгружаем при входе на вкладку
+  useEffect(() => {
+    if (screen !== 'home-favorites') return
+    api.botFavorites()
+      .then(fs => setServerFavs(fs.map(mapFavorite)))
+      .catch(() => setServerFavs([]))
+  }, [screen])
+
   const meta = CATEGORY_META[screen] || CATEGORY_META['home-signals']
   const isLoading = liveCards === null
-  const CARDS = isLoading ? {} : { ...ALL_CARDS, ...liveCards }
+  // Демо-карточки (ALL_CARDS) в выдачу НЕ подмешиваются — только живые данные
+  const CARDS = isLoading ? {} : liveCards
   let cards: Card[]
   if (isLoading) {
     cards = []
   } else if (screen==='home-favorites') {
-    cards = Object.values(CARDS).flat().filter(c=>favorites.includes(c.id))
+    const local = Object.values(CARDS).flat().filter(c=>favorites.includes(c.id))
+      .filter(c => !serverFavs.some(sf => sf.home === c.home && sf.away === c.away))
+    cards = [...serverFavs, ...local]
   } else {
     cards = CARDS[screen] || []
   }
 
-  const toggleFav = (id: string, e?: React.MouseEvent) => {
+  const toggleFav = (c: Card, e?: React.MouseEvent) => {
     e?.stopPropagation()
-    favorites.includes(id) ? removeFavorite(id) : addFavorite(id)
+    favorites.includes(c.id) ? removeFavorite(c.id) : addFavorite(c.id)
+    // Сервер: включает уведомление об исходе матча в Telegram-боте.
+    // Fire-and-forget: локальный стор работает даже если API недоступен.
+    if (c.cardType !== 'express' && c.away)
+      api.toggleFavorite(c.sport, c.home, c.away).catch(() => {})
   }
   const openDetail = (c: Card) => {
     markViewed(c.id)
@@ -997,9 +916,11 @@ export default function CategoryScreen() {
           </div>
         ) : cards.length===0 ? (
           <div style={{ height:'60%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:14 }}>
-            <div style={{ fontSize:44,opacity:.25 }}>★</div>
+            <div style={{ fontSize:44,opacity:.25 }}>{screen==='home-favorites' ? '★' : '📡'}</div>
             <div style={{ fontFamily:mono,fontSize:11,color:'rgba(255,255,255,.25)',textAlign:'center',letterSpacing:'.08em',lineHeight:1.6 }}>
-              Здесь появятся<br/>сохранённые сигналы
+              {screen==='home-favorites'
+                ? <>Здесь появятся<br/>сохранённые сигналы</>
+                : <>Сигналов нет · 0<br/>новые появятся после ближайшего скана</>}
             </div>
           </div>
         ) : (
@@ -1144,6 +1065,17 @@ export default function CategoryScreen() {
                       letterSpacing:'.18em',color:'#34D399' }}>БЕСПЛАТНО</div>
                   )}
 
+                  {/* 🏦 Банкер дня: пик с максимальной калиброванной вероятностью,
+                      прошедший все проверки (исторически заходят ~84%) */}
+                  {c.isBanker && (
+                    <div style={{ position:'absolute',top:8,right:10,zIndex:21,
+                      padding:'3px 8px',borderRadius:8,
+                      background:'rgba(234,179,8,.18)',border:'1px solid rgba(234,179,8,.5)',
+                      fontFamily:mono,fontSize:7,fontWeight:800,
+                      letterSpacing:'.14em',color:'#EAB308',
+                      boxShadow:'0 0 12px rgba(234,179,8,.25)' }}>🏦 БАНКЕР ДНЯ</div>
+                  )}
+
                   {/* Week: gradient overlay gold-tinted */}
                   {isWeek ? (
                     <div style={{ position:'absolute',inset:0,
@@ -1179,7 +1111,7 @@ export default function CategoryScreen() {
                   )}
 
                   {/* Fav star — top-right */}
-                  <M.button whileTap={{scale:.82}} onClick={(e: React.MouseEvent)=>toggleFav(c.id,e)}
+                  <M.button whileTap={{scale:.82}} onClick={(e: React.MouseEvent)=>toggleFav(c,e)}
                     style={{ position:'absolute',top:8,right:10,zIndex:5,
                       width:32,height:32,borderRadius:9,cursor:'pointer',
                       background:isFav?'rgba(255,215,0,.22)':'rgba(0,0,0,.42)',
