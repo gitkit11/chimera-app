@@ -79,6 +79,9 @@ export default function HomeScreen() {
 
   function startHold(e: React.TouchEvent | React.MouseEvent) {
     e.preventDefault()
+    // Дев-тумблер PRO по зажатию логотипа — ТОЛЬКО в dev-сборке.
+    // В проде это была дыра: любой юзер мог включить себе Pro бесплатно.
+    if (!import.meta.env.DEV) return
     if (holdRef.current) clearTimeout(holdRef.current)
     holdRef.current = setTimeout(() => {
       const next = !isPro
