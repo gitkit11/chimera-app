@@ -33,7 +33,11 @@ function initData(): string {
 
 async function get<T>(path: string): Promise<T> {
   await _ready
-  const res = await fetch(`${BASE}${path}`, {
+  // cache:no-store + метка времени: браузер/CDN не имеют права отдать
+  // старую (в т.ч. пустую) копию списка сигналов
+  const sep = path.includes('?') ? '&' : '?'
+  const res = await fetch(`${BASE}${path}${sep}t=${Date.now()}`, {
+    cache: 'no-store',
     headers: {
       'x-init-data': initData(),
       'ngrok-skip-browser-warning': '1',
@@ -47,6 +51,7 @@ async function get<T>(path: string): Promise<T> {
 async function getLive<T>(path: string): Promise<T> {
   await _ready
   const res = await fetch(`${LIVE}${path}`, {
+    cache: 'no-store',
     headers: {
       'x-init-data': initData(),
       'ngrok-skip-browser-warning': '1',
