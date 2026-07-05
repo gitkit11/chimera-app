@@ -44,9 +44,6 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
-/* position:fixed inset:0 — единственный надёжный способ заполнить
-   ровно видимую область на iOS Telegram WKWebView, без зависимости
-   от 100dvh (который больше viewport) или JS-расчётов. */
 #root {
   position: fixed;
   inset: 0;
@@ -70,3 +67,8 @@ body {
 .glow-violet  { animation: glow-violet  2s ease-in-out infinite; }
 .glow-lavender{ animation: glow-lavender 2s ease-in-out infinite; }
 .glow-orange  { animation: glow-orange  2s ease-in-out infinite; }
+
+/* Paywall keyframes — в глобальном CSS чтобы работали при повторных заходах */
+@keyframes pw-spin    { to { transform: translate(-50%,-50%) rotate(360deg) } }
+@keyframes pw-shim    { 0%,40%{transform:translateX(-100%)} 60%,100%{transform:translateX(220%)} }
+@keyframes pw-vticker { from { transform: translateY(0) } to { transform: translateY(-1320px) } }

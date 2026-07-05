@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useFunnel } from '../store/funnel'
 import { haptic } from '../haptic'
@@ -19,9 +19,15 @@ import lionIcon   from '../assets/agents/lion.svg'
 import goatIcon   from '../assets/agents/goat.svg'
 import snakeIcon  from '../assets/agents/snake.svg'
 import shadowIcon from '../assets/agents/shadow.svg'
-import speed210Bg from '../assets/bg/speed_210.png'
-import speed280Bg from '../assets/bg/speed_280.png'
-import speed340Bg from '../assets/bg/speed_340.png'
+import speed210Bg  from '../assets/bg/speed_210.png'
+import speed280Bg  from '../assets/bg/speed_280.png'
+import speed340Bg  from '../assets/bg/speed_340.png'
+import footballBg  from '../assets/bg/football.jpg'
+import football2Bg from '../assets/bg/football2.jpg'
+import basketballBg from '../assets/bg/basketball.jpg'
+import tennisBg    from '../assets/bg/tennis.jpg'
+import esportsBg   from '../assets/bg/esports.jpg'
+import { api, type ApiSignal, type ApiExpress } from '../api'
 
 const M = motion as any
 const f    = "'Clash Display','Unbounded',sans-serif"
@@ -70,7 +76,7 @@ type Card = {
 const ALL_CARDS: Record<string, Card[]> = {
   'home-signals': [
     { id:'sig-1', cardType:'signal', sport:'football', tag:'La Liga', home:'Real Madrid', away:'Barcelona',
-      rec:'П1', odds:'2.10', ev:'+18%', score:91, rarity:'chimera', time:'21:00', date:'15 мая', bg:'https://images.unsplash.com/photo-1522778034537-20a2486be803?w=800&q=80', homeLogo:null, awayLogo:null,
+      rec:'П1', odds:'2.10', ev:'+18%', score:91, rarity:'chimera', time:'21:00', date:'15 мая', bg:footballBg, homeLogo:null, awayLogo:null,
       probs:[{label:'П1',pct:64,color:'#A78BFA'},{label:'X',pct:19,color:'#64748B'},{label:'П2',pct:17,color:'#475569'}],
       stats:[{l:'xG',v:'2.3 — 1.1',hi:true},{l:'ELO',v:'+112'},{l:'Форма',v:'WWDWW vs LWWDL'}],
       lineMove:{open:'2.25',curr:'2.10',delta:'-0.15',dir:'down',note:'Шарп-деньги на П1'},
@@ -78,7 +84,7 @@ const ALL_CARDS: Record<string, Card[]> = {
       shadow:'Согласна по основному исходу. Тотал тоже интересен — высокий темп.',
       altBet:{rec:'ТБ 2.5',odds:'1.68',ev:'+9%',note:'Обе забивали в 8 из 10 матчей'} },
     { id:'sig-2', cardType:'signal', sport:'tennis', tag:'ATP Finals', home:'Djokovic', away:'Alcaraz',
-      rec:'П1', odds:'1.65', ev:'+11%', score:84, rarity:'epic', time:'18:30', date:'15 мая', bg:'https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=800&q=80', homeLogo:null, awayLogo:null,
+      rec:'П1', odds:'1.65', ev:'+11%', score:84, rarity:'epic', time:'18:30', date:'15 мая', bg:football2Bg, homeLogo:null, awayLogo:null,
       probs:[{label:'П1',pct:61,color:'#C084FC'},{label:'П2',pct:39,color:'#475569'}],
       stats:[{l:'ELO',v:'+89',hi:true},{l:'H2H',v:'7-3'},{l:'Форма',v:'WWWLW vs WLWWL'}],
       lineMove:{open:'1.80',curr:'1.65',delta:'-0.15',dir:'down',note:'Стабильный приток'},
@@ -86,7 +92,7 @@ const ALL_CARDS: Record<string, Card[]> = {
       shadow:'Согласна. Джокович лучше на харде в решающих матчах.',
       altBet:{rec:'Тотал 3 сета',odds:'1.72',ev:'+8%',note:'Алькарас любит затягивать'} },
     { id:'sig-3', cardType:'signal', sport:'cs2', tag:'IEM', home:'NaVi', away:'FaZe',
-      rec:'П1', odds:'1.74', ev:'+13%', score:79, rarity:'legend', time:'17:00', date:'15 мая', bg:'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=80', homeLogo:null, awayLogo:null,
+      rec:'П1', odds:'1.74', ev:'+13%', score:79, rarity:'legend', time:'17:00', date:'15 мая', bg:esportsBg, homeLogo:null, awayLogo:null,
       probs:[{label:'П1',pct:56,color:'#F97316'},{label:'П2',pct:44,color:'#475569'}],
       stats:[{l:'ELO NaVi',v:'+67',hi:true},{l:'Рейтинг',v:'#3 vs #7'},{l:'Форма',v:'WWLWW vs LWWLW'}],
       lineMove:{open:'1.68',curr:'1.74',delta:'+0.06',dir:'up',note:'Публика на FaZe'},
@@ -94,7 +100,7 @@ const ALL_CARDS: Record<string, Card[]> = {
       shadow:'NaVi сильнее тактически. Линия не отражает расклад.',
       altBet:{rec:'NaVi 2-0',odds:'2.20',ev:'+14%',note:'NaVi выигрывали 4 из 5 BO3'} },
     { id:'sig-4', cardType:'signal', sport:'basketball', tag:'NBA', home:'Boston', away:'Denver',
-      rec:'П1 -4.5', odds:'1.91', ev:'+17%', score:82, rarity:'rare', time:'04:30', date:'16 мая', bg:'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800&q=80', homeLogo:null, awayLogo:null,
+      rec:'П1 -4.5', odds:'1.91', ev:'+17%', score:82, rarity:'rare', time:'04:30', date:'16 мая', bg:basketballBg, homeLogo:null, awayLogo:null,
       probs:[{label:'П1',pct:58,color:'#60A5FA'},{label:'П2',pct:42,color:'#475569'}],
       stats:[{l:'Темп BOS',v:'+3.8',hi:true},{l:'ATS',v:'6-2 Boston'},{l:'Форма',v:'WWLWW vs LWLWL'}],
       lineMove:{open:'2.00',curr:'1.91',delta:'-0.09',dir:'down',note:'Деньги на фаворита'},
@@ -102,7 +108,7 @@ const ALL_CARDS: Record<string, Card[]> = {
       shadow:'Согласна. Тейтум в форме жизни, Йокич ограничен.',
       altBet:{rec:'ТБ 218.5',odds:'1.88',ev:'+10%',note:'Обе набирают 110+'} },
     { id:'sig-5', cardType:'signal', sport:'hockey', tag:'NHL', home:'Colorado', away:'Edmonton',
-      rec:'ТМ 5.5', odds:'1.88', ev:'+15%', score:77, rarity:'epic', time:'03:00', date:'16 мая', bg:'https://images.unsplash.com/photo-1515703407324-5f753afd8be8?w=800&q=80', homeLogo:null, awayLogo:null,
+      rec:'ТМ 5.5', odds:'1.88', ev:'+15%', score:77, rarity:'epic', time:'03:00', date:'16 мая', bg:tennisBg, homeLogo:null, awayLogo:null,
       probs:[{label:'ТМ',pct:52,color:'#C084FC'},{label:'ТБ',pct:48,color:'#475569'}],
       stats:[{l:'Тотал ср.',v:'5.2 гола',hi:true},{l:'ELO',v:'+28'},{l:'Форма',v:'WDWLW vs WWWLW'}],
       lineMove:{open:'1.92',curr:'1.88',delta:'-0.04',dir:'down',note:'Небольшой интерес'},
@@ -164,7 +170,7 @@ const ALL_CARDS: Record<string, Card[]> = {
   'home-totals': [
     { id:'tot-1', cardType:'total', sport:'football', tag:'La Liga', home:'Atletico', away:'Sevilla',
       rec:'ТМ 2.5', odds:'1.72', ev:'+9%', score:79, rarity:'epic', time:'20:00', date:'15 мая',
-      bg:'https://images.unsplash.com/photo-1522778034537-20a2486be803?w=800&q=80', homeLogo:null, awayLogo:null,
+      bg:footballBg, homeLogo:null, awayLogo:null,
       btts:58,
       probs:[{label:'ТМ',pct:62,color:'#34D399'},{label:'ТБ',pct:38,color:'#475569'}],
       stats:[{l:'xG avg',v:'1.4 — 1.1',hi:true},{l:'Ср. тотал',v:'1.9 гола'},{l:'ТМ в матчах',v:'6 из 8'},{l:'Темп',v:'низкий'}],
@@ -174,7 +180,7 @@ const ALL_CARDS: Record<string, Card[]> = {
       altBet:{rec:'0-0 / 1-0',odds:'3.10',ev:'+11%',note:'Счёт с малым тоталом'} },
     { id:'tot-2', cardType:'total', sport:'basketball', tag:'NBA', home:'LAL', away:'GSW',
       rec:'ТБ 224.5', odds:'1.90', ev:'+14%', score:83, rarity:'legend', time:'03:30', date:'16 мая',
-      bg:'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800&q=80', homeLogo:null, awayLogo:null,
+      bg:basketballBg, homeLogo:null, awayLogo:null,
       probs:[{label:'ТБ',pct:67,color:'#F97316'},{label:'ТМ',pct:33,color:'#475569'}],
       stats:[{l:'Ср. тотал',v:'228.4 очка',hi:true},{l:'ТБ в матчах',v:'4 из 5'},{l:'Темп LAL',v:'ТОП-5'},{l:'Темп GSW',v:'ТОП-3'}],
       lineMove:{open:'220.5',curr:'224.5',delta:'+4.0',dir:'up',note:'Линия растёт — публика давит'},
@@ -183,7 +189,7 @@ const ALL_CARDS: Record<string, Card[]> = {
       altBet:{rec:'LAL ТБ 112.5',odds:'1.88',ev:'+9%',note:'Lakers набирают 115+ в 70%'} },
     { id:'tot-3', cardType:'total', sport:'hockey', tag:'NHL', home:'Tampa', away:'Florida',
       rec:'ТБ 5.5', odds:'1.85', ev:'+12%', score:80, rarity:'epic', time:'02:00', date:'16 мая',
-      bg:'https://images.unsplash.com/photo-1515703407324-5f753afd8be8?w=800&q=80', homeLogo:null, awayLogo:null,
+      bg:tennisBg, homeLogo:null, awayLogo:null,
       probs:[{label:'ТБ',pct:58,color:'#C084FC'},{label:'ТМ',pct:42,color:'#475569'}],
       stats:[{l:'Тотал ср.',v:'6.1 гола',hi:true},{l:'ТБ H2H',v:'5 из 7'},{l:'Голы Tampa',v:'3.4/игру'},{l:'Голы Florida',v:'3.1/игру'}],
       lineMove:{open:'1.90',curr:'1.85',delta:'-0.05',dir:'down',note:'Тихий интерес к ТБ'},
@@ -195,7 +201,7 @@ const ALL_CARDS: Record<string, Card[]> = {
   'home-week': [
     { id:'week-1', cardType:'week', sport:'football', tag:'CHIMERA · Неделя', home:'Man City', away:'Arsenal',
       rec:'П1', odds:'2.35', ev:'+21%', score:94, rarity:'chimera', time:'17:30', date:'18 мая',
-      bg:'https://images.unsplash.com/photo-1522778034537-20a2486be803?w=800&q=80', homeLogo:null, awayLogo:null,
+      bg:footballBg, homeLogo:null, awayLogo:null,
       probs:[{label:'П1',pct:67,color:'#EAB308'},{label:'X',pct:18,color:'#64748B'},{label:'П2',pct:15,color:'#475569'}],
       stats:[{l:'xG',v:'2.7 — 1.2',hi:true},{l:'ELO',v:'+134'},{l:'Форма',v:'WWWWW vs LWWDW'}],
       lineMove:{open:'2.55',curr:'2.35',delta:'-0.20',dir:'down',note:'Шарпы активно заходят'},
@@ -205,6 +211,99 @@ const ALL_CARDS: Record<string, Card[]> = {
   ],
 
   'home-favorites': [],
+}
+
+// ── Live data mapping ─────────────────────────────────────────────────────────
+const SPORT_BG: Record<string, string> = {
+  football: footballBg, basketball: basketballBg,
+  tennis: football2Bg, cs2: esportsBg, hockey: tennisBg,
+}
+const RARITY_MAP: Record<string, RarityKey> = {
+  legendary: 'chimera', epic: 'epic', rare: 'legend', common: 'rare',
+}
+
+function mapSignal(s: ApiSignal, cardType: 'signal' | 'total' | 'week'): Card {
+  const color = SPORT_COLOR[s.sport] ?? '#A78BFA'
+  const conf  = Math.round(s.confidence)
+  const ag    = s.agents ?? {}
+  const dt    = new Date(s.matchTime)
+  const ok    = !isNaN(dt.getTime())
+  return {
+    id: s.id, cardType, sport: s.sport,
+    tag: s.league, home: s.team1, away: s.team2,
+    rec: s.prediction,
+    odds: String(s.odds),
+    ev: s.ev > 0 ? `+${s.ev.toFixed(0)}%` : `${s.ev.toFixed(0)}%`,
+    score: s.chimera_score ?? conf,
+    rarity: RARITY_MAP[s.rarity] ?? 'rare',
+    time: ok ? dt.toLocaleTimeString('ru', { hour:'2-digit', minute:'2-digit' }) : '—',
+    date: ok ? dt.toLocaleDateString('ru', { day:'numeric', month:'short' }) : '—',
+    bg: SPORT_BG[s.sport] ?? footballBg,
+    homeLogo: null, awayLogo: null,
+    probs: cardType === 'total' ? (() => {
+      const pOver  = s.prob_over  !== undefined ? Math.round(s.prob_over)  : conf
+      const pUnder = 100 - pOver
+      const lblOver  = s.total_line ? `ТБ ${s.total_line}` : 'ТБ'
+      const lblUnder = s.total_line ? `ТМ ${s.total_line}` : 'ТМ'
+      return s.total_direction === 'under'
+        ? [{ label: lblUnder, pct: pUnder, color }, { label: lblOver,  pct: pOver,  color: '#475569' }]
+        : [{ label: lblOver,  pct: pOver,  color }, { label: lblUnder, pct: pUnder, color: '#475569' }]
+    })() : [
+      { label: s.prediction, pct: conf, color },
+      { label: 'Против', pct: 100 - conf, color: '#475569' },
+    ],
+    stats: cardType === 'total' ? [
+      { l: 'Ср. тотал',  v: s.avg_total_label ?? (s.avg_total ? String(s.avg_total) : '—'), hi: true },
+      { l: s.over_pct !== undefined ? 'Пробив H2H' : 'Уверенность ИИ',
+        v: s.over_pct !== undefined ? `${s.over_pct}%` : `${conf}%` },
+      { l: 'Тренд',      v: s.trend ?? '—' },
+    ] : [
+      { l: 'Сигналов',   v: `${s.signals_passed ?? '?'}/${s.signals_total ?? 6}`, hi: true },
+      { l: 'Уверенность', v: `${conf}%` },
+      { l: 'Лига',       v: s.league },
+    ],
+    lineMove: { open: String(s.odds), curr: String(s.odds), delta: '0.00', dir: 'down', note: 'Данные от бота' },
+    agentTexts: [ag.statistician ?? '—', ag.scout ?? '—', ag.arbiter ?? '—'],
+    shadow: cardType === 'total' ? (s.reasoning ?? ag.llama ?? '—') : (ag.llama ?? '—'),
+    altBet: { rec: '—', odds: '—', ev: '—', note: 'Нет альт. ставки' },
+  }
+}
+
+function mapExpress(e: ApiExpress): Card {
+  const bgByLegs: Record<number, string> = { 2: speed210Bg, 3: speed280Bg, 4: speed340Bg }
+  const conf = Math.round(e.confidence)
+  return {
+    id: e.id, cardType: 'express', sport: e.sport,
+    tag: `Экспресс ×${e.legs.length}`,
+    home: e.legs.map(l => l.team1).join(' + '), away: '',
+    rec: `×${Number(e.totalOdds).toFixed(2)}`,
+    odds: String(Number(e.totalOdds).toFixed(2)),
+    ev: '+??%', score: conf,
+    rarity: RARITY_MAP[e.rarity] ?? 'rare',
+    time: '—', date: '—',
+    bg: bgByLegs[e.legs.length] ?? speed280Bg,
+    homeLogo: null, awayLogo: null,
+    legs: e.legs.map(l => ({
+      sport: l.sport,
+      match: `${l.team1} vs ${l.team2}`,
+      pick: l.prediction,
+      odds: String(l.odds),
+      conf: 70, color: l.color,
+    })),
+    hitPct: conf, maxBet: '3%', correlation: 'средняя',
+    probs: [
+      { label: 'Hit',  pct: conf, color: '#34D399' },
+      { label: 'Miss', pct: 100 - conf, color: '#475569' },
+    ],
+    stats: [
+      { l: 'Кэф',        v: `×${Number(e.totalOdds).toFixed(2)}`, hi: true },
+      { l: 'Уверенность', v: `${conf}%` },
+      { l: 'Рекоменд.',  v: '3% банка' },
+    ],
+    lineMove: { open: String(e.totalOdds), curr: String(e.totalOdds), delta: '0', dir: 'down', note: 'Данные от бота' },
+    agentTexts: ['—', '—', '—'], shadow: '—',
+    altBet: { rec: '—', odds: '—', ev: '—', note: e.why ?? '—' },
+  }
 }
 
 const CATEGORY_META: Record<string, { label: string; icon: string; color: string }> = {
@@ -316,13 +415,38 @@ export default function CategoryScreen() {
   const setCardOpen        = useFunnel(s=>s.setCardOpen)
   const [openCard, setOpenCard] = useState<Card|null>(null)
   const [flipped,  setFlipped]  = useState(false)
+  const [liveCards, setLiveCards] = useState<Record<string, Card[]> | null>(null)
+
+  useEffect(() => {
+    Promise.allSettled([
+      api.botSignals(),
+      api.botExpress(),
+      api.botTotals(),
+      api.botWeek(),
+    ]).then(([sigR, expR, totR, wkR]) => {
+      const upd: Record<string, Card[]> = {}
+      if (sigR.status === 'fulfilled' && sigR.value.length > 0)
+        upd['home-signals'] = sigR.value.map(s => mapSignal(s, 'signal'))
+      if (expR.status === 'fulfilled' && expR.value.length > 0)
+        upd['home-express'] = expR.value.map(mapExpress)
+      if (totR.status === 'fulfilled' && totR.value.length > 0)
+        upd['home-totals'] = totR.value.map(s => mapSignal(s, 'total'))
+      if (wkR.status === 'fulfilled' && wkR.value)
+        upd['home-week'] = [mapSignal(wkR.value, 'week')]
+      setLiveCards(upd)
+    }).catch(() => setLiveCards({}))
+  }, [])
 
   const meta = CATEGORY_META[screen] || CATEGORY_META['home-signals']
+  const isLoading = liveCards === null
+  const CARDS = isLoading ? {} : { ...ALL_CARDS, ...liveCards }
   let cards: Card[]
-  if (screen==='home-favorites') {
-    cards = Object.values(ALL_CARDS).flat().filter(c=>favorites.includes(c.id))
+  if (isLoading) {
+    cards = []
+  } else if (screen==='home-favorites') {
+    cards = Object.values(CARDS).flat().filter(c=>favorites.includes(c.id))
   } else {
-    cards = ALL_CARDS[screen] || []
+    cards = CARDS[screen] || []
   }
 
   const toggleFav = (id: string, e?: React.MouseEvent) => {
@@ -357,7 +481,8 @@ export default function CategoryScreen() {
                   : isExpress ? 'linear-gradient(160deg,#1a0800,#431407)'
                   : isTotal   ? 'linear-gradient(160deg,#001a0f,#022c22)'
                   :             'linear-gradient(160deg,#0D0525,#2D1065)' }}>
-        <img src={c.bg} alt="" style={{ position:'absolute',inset:0,width:'100%',height:'100%',
+        <img src={c.bg} alt="" onError={(e)=>{(e.target as HTMLImageElement).style.display='none'}}
+          style={{ position:'absolute',inset:0,width:'100%',height:'100%',
           objectFit:'cover',objectPosition:'center top',
           filter:`brightness(${flipped?.3:.6}) saturate(.65)` }} />
         {!flipped && <div style={{ position:'absolute',inset:0,background:'linear-gradient(180deg,rgba(4,2,13,.35) 0%,rgba(4,2,13,.02) 22%,rgba(4,2,13,.02) 44%,rgba(4,2,13,.65) 65%,rgba(4,2,13,.97) 86%)' }}/>}
@@ -859,7 +984,18 @@ export default function CategoryScreen() {
 
       {/* Cards */}
       <div style={{ flex:1,overflowY:'auto',padding:'0 20px var(--scroll-bottom)',scrollbarWidth:'none' as const }}>
-        {cards.length===0 ? (
+        {isLoading ? (
+          <div style={{ display:'flex',flexDirection:'column',gap:10,paddingTop:4 }}>
+            {[0,1,2].map(i=>(
+              <M.div key={i}
+                animate={{ opacity:[.3,.55,.3] }}
+                transition={{ duration:1.6,repeat:Infinity,delay:i*.2,ease:'easeInOut' }}
+                style={{ height:118,borderRadius:16,
+                  background:'rgba(255,255,255,.05)',
+                  border:'1px solid rgba(255,255,255,.06)' }}/>
+            ))}
+          </div>
+        ) : cards.length===0 ? (
           <div style={{ height:'60%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:14 }}>
             <div style={{ fontSize:44,opacity:.25 }}>★</div>
             <div style={{ fontFamily:mono,fontSize:11,color:'rgba(255,255,255,.25)',textAlign:'center',letterSpacing:'.08em',lineHeight:1.6 }}>
@@ -891,9 +1027,10 @@ export default function CategoryScreen() {
                   transition={{delay:.05*i,type:'spring',stiffness:200}}
                   style={{ position:'relative',borderRadius:isWeek?20:16,overflow:'hidden',height:cardH }}>
 
-                  <img src={c.bg} alt="" style={{ position:'absolute',inset:0,width:'100%',height:'100%',
+                  <img src={c.bg} alt="" onError={(e)=>{(e.target as HTMLImageElement).style.display='none'}}
+                    style={{ position:'absolute',inset:0,width:'100%',height:'100%',
                     objectFit:'cover',
-                    filter:`brightness(${(isLocked||isProClosed) ? .18 : isWeek ? .55 : .42}) saturate(${(isLocked||isProClosed) ? .12 : isWeek ? .8 : .6})`,
+                    filter:`brightness(${(isLocked||isProClosed) ? .32 : isWeek ? .6 : .52}) saturate(${(isLocked||isProClosed) ? .3 : isWeek ? .85 : .7})`,
                     transition:'filter .4s' }}/>
 
                   {isLocked ? (
@@ -954,8 +1091,23 @@ export default function CategoryScreen() {
                         background:'linear-gradient(90deg,rgba(4,2,13,.88) 0%,rgba(4,2,13,.65) 100%)' }}/>
                       <div style={{ position:'relative',zIndex:2,height:'100%',
                         display:'flex',alignItems:'center',padding:'0 14px',gap:12 }}>
-                        <img src={SPORT_ICONS[c.sport]||footballIcon} alt=""
-                          style={{ width:50,height:50,borderRadius:12,opacity:.55,flexShrink:0 }}/>
+                        {isExpress && c.legs ? (
+                          <div style={{ position:'relative',width:52,height:50,flexShrink:0 }}>
+                            {c.legs.slice(0,3).map((leg,li)=>(
+                              <img key={li} src={SPORT_ICONS[leg.sport]||footballIcon}
+                                style={{ position:'absolute',
+                                  top:li*9, left:li*6,
+                                  width:li===0?42:li===1?36:30, height:li===0?42:li===1?36:30,
+                                  borderRadius:9, opacity:(1-li*.15)*.55,
+                                  border:`1.5px solid ${leg.color}44`,
+                                  background:`${leg.color}0D`, padding:3,
+                                  boxSizing:'border-box' as const, zIndex:3-li }} />
+                            ))}
+                          </div>
+                        ) : (
+                          <img src={SPORT_ICONS[c.sport]||footballIcon} alt=""
+                            style={{ width:50,height:50,borderRadius:12,opacity:.55,flexShrink:0 }}/>
+                        )}
                         <div style={{ flex:1,minWidth:0 }}>
                           <div style={{ height:7,width:'45%',borderRadius:4,background:'rgba(255,255,255,.08)',marginBottom:8 }}/>
                           <div style={{ height:12,width:'78%',borderRadius:4,background:'rgba(255,255,255,.06)',marginBottom:8 }}/>
@@ -1026,14 +1178,16 @@ export default function CategoryScreen() {
                     </div>
                   )}
 
-                  {/* Fav star */}
-                  <M.button whileTap={{scale:.85}} onClick={(e: React.MouseEvent)=>toggleFav(c.id,e)}
-                    style={{ position:'absolute',top:isWeek?10:6,left:10,zIndex:3,
-                      width:28,height:28,borderRadius:8,border:'none',cursor:'pointer',
-                      background:isFav?'rgba(255,215,0,.2)':'rgba(255,255,255,.08)',
+                  {/* Fav star — top-right */}
+                  <M.button whileTap={{scale:.82}} onClick={(e: React.MouseEvent)=>toggleFav(c.id,e)}
+                    style={{ position:'absolute',top:8,right:10,zIndex:5,
+                      width:32,height:32,borderRadius:9,cursor:'pointer',
+                      background:isFav?'rgba(255,215,0,.22)':'rgba(0,0,0,.42)',
+                      backdropFilter:'blur(6px)' as any,
+                      border:isFav?'1px solid rgba(255,215,0,.45)':'1px solid rgba(255,255,255,.14)' as any,
                       display:'flex',alignItems:'center',justifyContent:'center',
-                      fontSize:14,color:isFav?'#FFD700':'rgba(255,255,255,.35)',
-                      boxShadow:isFav?'0 0 10px rgba(255,215,0,.4)':'none',transition:'all .2s' }}>
+                      fontSize:15,color:isFav?'#FFD700':'rgba(255,255,255,.65)',
+                      boxShadow:isFav?'0 0 14px rgba(255,215,0,.45)':'none',transition:'all .2s' }}>
                     {isFav?'★':'☆'}
                   </M.button>
 

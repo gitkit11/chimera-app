@@ -1,15 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { motion } from 'framer-motion'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useFunnel } from '../store/funnel'
 import { haptic } from '../haptic'
 import logoIcon    from '../assets/icon_dark2.png'
-import sniperBg    from '../assets/bg/sniper_photo.png'
-import goldenCupBg from '../assets/bg/ak47_gold.png'
+const sniperBg      = `${import.meta.env.BASE_URL}bg/sniper_photo.png`
+const goldenCupBg   = `${import.meta.env.BASE_URL}bg/ak47_gold.png`
+const expressCarBg  = `${import.meta.env.BASE_URL}bg/express_car2.jpg`
+const totalsChess = `${import.meta.env.BASE_URL}bg/totals_chess.jpg`
 import signalsIcon  from '../assets/menu/signals.svg'
 import expressIcon  from '../assets/menu/express.svg'
 import totalsIcon   from '../assets/menu/totals.svg'
 import weekIcon     from '../assets/menu/week.svg'
+import { api } from '../api'
 
 const M = motion as any
 const f    = "'Clash Display','Unbounded',sans-serif"
@@ -27,7 +30,7 @@ const CATS = [
   {
     id: 'home-express' as const, label: 'Экспресс',        sub: '2 экспресса · Мульти',
     icon: expressIcon, count: '2',
-    photo: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=800&q=80',
+    photo: expressCarBg,
     line: 'linear-gradient(180deg,#C2410C,#F97316,#FCD34D)',
     overlay: 'linear-gradient(90deg,rgba(28,10,0,.95) 0%,rgba(28,10,0,.7) 55%,rgba(194,65,12,.18) 100%)',
     glow: 'rgba(249,115,22,.25)', accent: '#F97316',
@@ -35,7 +38,7 @@ const CATS = [
   {
     id: 'home-totals' as const,  label: 'Тоталы',          sub: '3 ставки на тотал',
     icon: totalsIcon,  count: '3',
-    photo: 'https://images.unsplash.com/photo-1528819622765-d6bcf132f793?w=800&q=80',
+    photo: totalsChess,
     line: 'linear-gradient(180deg,#047857,#10B981,#6EE7B7)',
     overlay: 'linear-gradient(90deg,rgba(0,20,10,.95) 0%,rgba(0,20,10,.7) 55%,rgba(4,120,87,.18) 100%)',
     glow: 'rgba(16,185,129,.25)', accent: '#34D399',
@@ -56,6 +59,23 @@ export default function HomeScreen() {
   const setPro = useFunnel(s => s.setPro)
   const [toast, setToast] = useState<string | null>(null)
   const holdRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [counts, setCounts] = useState<Record<string,number>>({})
+
+  useEffect(() => {
+    Promise.allSettled([
+      api.botSignals(),
+      api.botExpress(),
+      api.botTotals(),
+      api.botWeek(),
+    ]).then(([s, e, t, w]) => {
+      setCounts({
+        'home-signals': s.status==='fulfilled' ? s.value.length : 0,
+        'home-express': e.status==='fulfilled' ? e.value.length : 0,
+        'home-totals':  t.status==='fulfilled' ? t.value.length : 0,
+        'home-week':    w.status==='fulfilled' && w.value ? 1 : 0,
+      })
+    })
+  }, [])
 
   function startHold(e: React.TouchEvent | React.MouseEvent) {
     e.preventDefault()
@@ -166,10 +186,12 @@ export default function HomeScreen() {
               background: '#04020D',
               boxShadow: `0 6px 28px ${cat.glow}, inset 0 1px 0 rgba(255,255,255,.07)` }}>
 
-            {/* Photo/SVG bg */}
-            <img src={cat.photo} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%',
-              objectFit: cat.photo === sniperBg || cat.photo === goldenCupBg ? 'contain' : 'cover',
-              objectPosition: cat.photo === sniperBg || cat.photo === goldenCupBg ? 'right center' : 'center',
+            {/* Photo bg via CSS — no broken-image placeholder */}
+            <div style={{ position: 'absolute', inset: 0,
+              backgroundImage: `url("${cat.photo}")`,
+              backgroundSize: cat.photo === sniperBg || cat.photo === goldenCupBg ? 'contain' : 'cover',
+              backgroundPosition: cat.photo === sniperBg || cat.photo === goldenCupBg ? 'right center' : 'center',
+              backgroundRepeat: 'no-repeat',
               filter: cat.photo === sniperBg || cat.photo === goldenCupBg
                 ? 'none'
                 : 'brightness(.5) saturate(.6) contrast(1.05)',
@@ -201,7 +223,9 @@ export default function HomeScreen() {
               {/* Text */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontFamily: f, fontWeight: 900, fontSize: 16, lineHeight: 1, marginBottom: 5 }}>{cat.label}</div>
-                <div style={{ fontFamily: mono, fontSize: 9, color: 'rgba(255,255,255,.42)' }}>{cat.sub}</div>
+                <div style={{ fontFamily: mono, fontSize: 9, color: 'rgba(255,255,255,.42)' }}>
+                  {counts[cat.id] !== undefined ? `${counts[cat.id]} · Сегодня` : cat.sub}
+                </div>
               </div>
 
               {/* Count */}
@@ -209,7 +233,9 @@ export default function HomeScreen() {
                 <div style={{ width: 40, height: 40, borderRadius: 11,
                   background: `${cat.accent}15`, border: `1px solid ${cat.accent}35`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontFamily: f, fontWeight: 900, fontSize: 20, color: cat.accent, lineHeight: 1 }}>{cat.count}</span>
+                  <span style={{ fontFamily: f, fontWeight: 900, fontSize: 20, color: cat.accent, lineHeight: 1 }}>
+                    {counts[cat.id] ?? cat.count}
+                  </span>
                 </div>
                 <span style={{ fontFamily: mono, fontSize: 7, color: 'rgba(255,255,255,.2)', letterSpacing: '.08em' }}>сегодня</span>
               </div>
@@ -224,12 +250,8 @@ export default function HomeScreen() {
           whileTap={{ scale: .97 }}
           onClick={() => go('home-favorites')}
           style={{ borderRadius: 18, height: 72, cursor: 'pointer', position: 'relative', overflow: 'hidden',
-            display: 'flex', alignItems: 'center', padding: '0 18px 0 16px', gap: 14 }}>
-          {/* Olympic medal background */}
-          <img src="https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=800&q=80" alt=""
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%',
-              objectFit: 'cover', objectPosition: 'center',
-              filter: 'brightness(.2) saturate(.5)' }} />
+            display: 'flex', alignItems: 'center', padding: '0 18px 0 16px', gap: 14,
+            background: 'linear-gradient(135deg,#0A0800 0%,#120D02 60%,#1A1005 100%)' }}>
           <div style={{ position: 'absolute', inset: 0,
             background: 'linear-gradient(90deg,rgba(4,2,13,.97) 0%,rgba(4,2,13,.78) 55%,rgba(255,215,0,.1) 100%)' }} />
           <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 2.5,

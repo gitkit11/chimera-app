@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { motion } from 'framer-motion'
+import { useRef, useEffect } from 'react'
 import { useFunnel } from '../store/funnel'
 import logoIcon from '../assets/icon_dark2.png'
 import stawkiLogo from '../assets/stawkibet.svg'
@@ -31,6 +32,34 @@ export default function Paywall() {
   const go          = useFunnel(s => s.go)
   const isPro       = useFunnel(s => s.isPro)
   const proDaysLeft = useFunnel(s => s.proDaysLeft)
+  const tickerRef   = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    let anim: Animation | null = null
+
+    const start = () => {
+      const el = tickerRef.current
+      if (!el) return
+      anim?.cancel()
+      anim = el.animate(
+        [{ transform: 'translateY(0px)' }, { transform: 'translateY(-1320px)' }],
+        { duration: 132000, iterations: Infinity, easing: 'linear' }
+      )
+    }
+
+    // Delay past Framer Motion entry animation (opacity 0→1 ~260ms)
+    const timer = setTimeout(start, 300)
+
+    // Restart when Telegram brings app back to foreground
+    const onVisible = () => { if (!document.hidden) start() }
+    document.addEventListener('visibilitychange', onVisible)
+
+    return () => {
+      clearTimeout(timer)
+      anim?.cancel()
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [])
 
   if (isPro) return (
     <M.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
@@ -54,17 +83,19 @@ export default function Paywall() {
 
   return (
     <M.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: .26 }}
-      style={{ height: '100%', display: 'flex', flexDirection: 'column',
-        background: '#04020D', overflow: 'hidden', position: 'relative' }}>
+      style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' as const,
+        background: '#04020D', overflow: 'hidden' }}>
 
       {/* Purple ambient */}
       <div style={{ position: 'absolute', top: '20%', left: '50%', transform: 'translateX(-50%)',
-        width: 380, height: 280, pointerEvents: 'none',
+        width: 380, height: 280, pointerEvents: 'none', zIndex: 0,
         background: 'radial-gradient(ellipse,rgba(109,40,217,.09) 0%,transparent 68%)',
         filter: 'blur(14px)' }} />
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column',
-        padding: 'var(--header-top) 18px 0', overflowY: 'auto', scrollbarWidth: 'none' as const }}>
+      {/* ── SCROLL ZONE: Header + PRO card + Stawki ── */}
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', scrollbarWidth: 'none' as const,
+        position: 'relative', zIndex: 1,
+        padding: 'var(--header-top) 18px 20px' }}>
 
         {/* ── Header ── */}
         <M.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .06 }}
@@ -84,7 +115,7 @@ export default function Paywall() {
 
         {/* ══ PRO CARD ══ */}
         <M.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .11 }}
-          style={{ borderRadius: 18, marginBottom: 10, position: 'relative', overflow: 'hidden',
+          style={{ borderRadius: 18, position: 'relative', overflow: 'hidden',
             background: 'linear-gradient(155deg,#0E0B1E 0%,#070514 60%,#0A0620 100%)',
             border: '1px solid rgba(139,92,246,.28)',
             boxShadow: '0 4px 32px rgba(76,29,149,.14)' }}>
@@ -135,8 +166,8 @@ export default function Paywall() {
           </div>
         </M.div>
 
-        {/* ── Divider ── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+        {/* Divider */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6, marginBottom: 10 }}>
           <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,.05)' }} />
           <span style={{ fontFamily: mono, fontSize: 7.5, color: 'rgba(255,255,255,.14)', letterSpacing: '.2em' }}>ИЛИ БЕСПЛАТНО</span>
           <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,.05)' }} />
@@ -144,7 +175,7 @@ export default function Paywall() {
 
         {/* ══ STAWKIBET CARD ══ */}
         <M.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .19 }}
-          style={{ borderRadius: 18, marginBottom: 10, overflow: 'hidden',
+          style={{ borderRadius: 18, marginBottom: 0, overflow: 'hidden',
             background: '#07060A', border: `1.5px solid ${GOLD_LINE}`,
             boxShadow: `0 4px 32px rgba(232,184,75,.06)` }}>
           <div style={{ height: 2, background: `linear-gradient(90deg,transparent,${GOLD} 30%,#F5D78A 50%,${GOLD} 70%,transparent)` }} />
@@ -203,18 +234,17 @@ export default function Paywall() {
 
       </div>
 
-      {/* ── Trust ticker (vertical, top→bottom) ── */}
-      <div style={{ flexShrink: 0, overflow: 'hidden', borderTop: '1px solid rgba(255,255,255,.05)',
-        borderBottom: '1px solid rgba(255,255,255,.05)', height: 90, position: 'relative' }}>
-        {/* fade top */}
+      {/* ── Trust ticker (vertical) ── */}
+      <div style={{ flexShrink: 0, height: 90, overflow: 'hidden',
+        borderTop: '1px solid rgba(255,255,255,.05)',
+        borderBottom: '1px solid rgba(255,255,255,.05)', position: 'relative', zIndex: 1 }}>
         <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 26, zIndex: 2, pointerEvents: 'none',
           background: 'linear-gradient(180deg,#04020D,transparent)' }} />
-        {/* fade bottom */}
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 26, zIndex: 2, pointerEvents: 'none',
           background: 'linear-gradient(0deg,#04020D,transparent)' }} />
-        <div style={{ display: 'flex', flexDirection: 'column' as const,
-          animation: 'pw-vticker 132s linear infinite' }}>
-          {[...Array(2)].map((_, rep) => (
+        <div ref={tickerRef} style={{ display: 'flex', flexDirection: 'column' as const,
+          willChange: 'transform' }}>
+          {[...Array(3)].map((_, rep) => (
             <div key={rep}>
               {[
                 { role: 'Скаут',     action: 'читает новости за последние 24 часа',                 col: '#60A5FA' },
@@ -264,18 +294,15 @@ export default function Paywall() {
               ].map((item, i) => (
                 <div key={i} style={{ height: 30, display: 'flex', alignItems: 'center',
                   padding: '0 16px', gap: 7, whiteSpace: 'nowrap' as const }}>
-                  {/* "AI АГЕНТ" chip */}
                   <span style={{
                     fontFamily: mono, fontSize: 6.5, fontWeight: 700, letterSpacing: '.12em',
                     textTransform: 'uppercase' as const, color: 'rgba(255,255,255,.3)',
                     background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)',
                     padding: '2px 6px', borderRadius: 4, flexShrink: 0,
                   }}>AI АГЕНТ</span>
-                  {/* role name in color */}
                   <span style={{ fontFamily: mono, fontSize: 9, fontWeight: 700,
                     color: item.col, flexShrink: 0 }}>{item.role}</span>
                   <span style={{ color: 'rgba(255,255,255,.12)', fontSize: 9 }}>·</span>
-                  {/* action */}
                   <span style={{ fontFamily: mono, fontSize: 8.5,
                     color: 'rgba(255,255,255,.28)', letterSpacing: '.01em' }}>
                     {item.action}
@@ -288,7 +315,8 @@ export default function Paywall() {
       </div>
 
       {/* ── Bottom nav ── */}
-      <div style={{ flexShrink: 0, padding: `8px 18px max(22px, calc(env(safe-area-inset-bottom,0px) + 12px))`, display: 'flex', gap: 8 }}>
+      <div style={{ flexShrink: 0, padding: `8px 18px max(22px, calc(env(safe-area-inset-bottom,0px) + 12px))`,
+        display: 'flex', gap: 8, zIndex: 1, background: '#04020D' }}>
         <M.button whileTap={{ scale: .96 }} onClick={() => { haptic('light'); go('signal-cards') }}
           style={{ flex: 1, padding: '13px', borderRadius: 14, cursor: 'pointer', border: 'none',
             background: 'rgba(255,255,255,.05)',
@@ -306,11 +334,6 @@ export default function Paywall() {
         </M.button>
       </div>
 
-      <style>{`
-        @keyframes pw-spin    { to { transform: translate(-50%,-50%) rotate(360deg) } }
-        @keyframes pw-shim    { 0%,40%{transform:translateX(-100%)} 60%,100%{transform:translateX(220%)} }
-        @keyframes pw-vticker { from { transform: translateY(-50%) } to { transform: translateY(0) } }
-      `}</style>
     </M.div>
   )
 }
