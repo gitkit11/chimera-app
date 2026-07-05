@@ -264,6 +264,14 @@ export default function App() {
     api.user().then(u => {
       setPro(u.isPro)
       setProDays(u.daysLeft)
+      // Подписчику онбординг-воронка не нужна: он уже купил.
+      // Пропускаем первые экраны и ведём сразу к сигналам.
+      if (u.isPro) {
+        const FUNNEL: Screen[] = ['splash', 'cover', 'stake-select',
+          'card-reveal', 'signal-cards', 'paywall', 'verify', 'stawki-steps']
+        const cur = useFunnel.getState().screen
+        if (FUNNEL.includes(cur)) useFunnel.getState().go('home')
+      }
     }).catch(() => {})
   }, [])
 

@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { api, type FunnelSignal } from '../api'
 import { useFunnel } from '../store/funnel'
 import { haptic } from '../haptic'
 import footballIcon   from '../assets/icons/football.svg'
@@ -179,6 +180,12 @@ export default function SignalCards() {
   const [expanded,    setExpanded]    = useState(false)
   const [flipped,     setFlipped]     = useState(false)
   const [showExpHint, setShowExpHint] = useState(false)
+  // Реальный бесплатный сигнал (банкер дня) — юзер должен открыть ставку,
+  // которая реально зайдёт, а не декорацию
+  const [realSig, setRealSig] = useState<FunnelSignal | null>(null)
+  useEffect(() => {
+    api.funnelSignal().then(s => { if (s && s.team1) setRealSig(s) }).catch(() => {})
+  }, [])
 
   const pick = (i: number) => {
     if (chosen !== null && chosen !== i) return
@@ -186,12 +193,31 @@ export default function SignalCards() {
     setExpanded(true)
     setFlipped(false)
     setFunnelSignalIdx(i)
+    // Сервер запоминает выбор: бот пришлёт пуш с исходом бесплатной ставки
+    if (realSig)
+      api.funnelPick(realSig.sport, realSig.team1, realSig.team2).catch(() => {})
     setTimeout(() => setShowExpHint(true), 1400)
   }
   const close = () => { setExpanded(false); setFlipped(false); setShowExpHint(false) }
   const flip  = () => { setShowExpHint(false); setFlipped(p => !p) }
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const c = chosen !== null ? SIGNALS[chosen] : null!
+  const base = chosen !== null ? SIGNALS[chosen] : null!
+  // Открытая ячейка показывает РЕАЛЬНЫЙ сигнал (замер: пики prob>=75%
+  // заходят в ~84% случаев) — визуальный каркас остаётся от макета
+  const c = (chosen !== null && realSig) ? {
+    ...base,
+    sport: realSig.sport,
+    tag:   realSig.league || base.tag,
+    home:  realSig.team1,
+    away:  realSig.team2,
+    rec:   realSig.prediction,
+    odds:  realSig.odds ? realSig.odds.toFixed(2) : base.odds,
+    score: realSig.confidence || base.score,
+    probs: [
+      { label: realSig.prediction, pct: realSig.confidence || 60, color: '#A78BFA' },
+      { label: 'Против', pct: 100 - (realSig.confidence || 60), color: '#475569' },
+    ],
+  } : base
 
   // ── DETAIL SCREEN ──────────────────────────────────────────────────────
   if (expanded && c) {

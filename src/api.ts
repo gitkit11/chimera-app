@@ -100,7 +100,9 @@ export interface Signal {
 }
 
 export const api = {
-  user:    () => get<UserInfo>('/api/user'),
+  // Персональные данные — только через живой API (getLive): статический
+  // origin отдаёт всем одинаковый снапшот и не знает юзера
+  user:    () => getLive<UserInfo>('/api/user'),
   signals: () => get<{ signals: Signal[]; isPro: boolean }>('/api/signals'),
   botSignals: () => get<ApiSignal[]>('/api/signals'),
   botExpress: () => get<ApiExpress[]>('/api/express'),
@@ -113,6 +115,17 @@ export const api = {
   toggleFavorite: (sport: string, home: string, away: string) =>
     post<{ ok: boolean; favorited?: boolean }>('/api/favorite', { sport, home, away }),
   botFavorites: () => getLive<ApiFavorite[]>('/api/favorites'),
+  // Воронка: бесплатный сигнал 4-го экрана (банкер дня) + фиксация выбора
+  // (бот пришлёт пуш с исходом бесплатной ставки)
+  funnelSignal: () => getLive<FunnelSignal>('/api/funnel-signal'),
+  funnelPick: (sport: string, home: string, away: string) =>
+    post<{ ok: boolean }>('/api/funnel-pick', { sport, home, away }),
+}
+
+export interface FunnelSignal {
+  sport: string; team1: string; team2: string
+  prediction: string; pick_team: string; odds: number
+  confidence: number; matchTime: string; league: string; isBanker?: boolean
 }
 
 export interface ApiFavorite {
