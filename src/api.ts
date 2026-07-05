@@ -73,6 +73,15 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   return res.json()
 }
 
+
+async function getWithLiveFallback<T>(path: string, isEmpty: (v: T) => boolean): Promise<T> {
+  try {
+    const v = await get<T>(path)
+    if (!isEmpty(v)) return v
+  } catch { /* статика недоступна — идём на живой сервер */ }
+  return getLive<T>(path)
+}
+
 export interface UserInfo {
   user_id: number
   username: string
@@ -104,10 +113,13 @@ export const api = {
   // origin отдаёт всем одинаковый снапшот и не знает юзера
   user:    () => getLive<UserInfo>('/api/user'),
   signals: () => get<{ signals: Signal[]; isPro: boolean }>('/api/signals'),
-  botSignals: () => get<ApiSignal[]>('/api/signals'),
-  botExpress: () => get<ApiExpress[]>('/api/express'),
-  botTotals:  () => get<ApiSignal[]>('/api/totals'),
-  botWeek:    () => get<ApiSignal | null>('/api/week'),
+  // Карточки: сначала быстрые статические снапшоты; пусто/ошибка →
+  // автоматический перезапрос с живого сервера (снапшоты обновляются раз
+  // в 10 мин и CDN-грань может отдать пустую/старую копию)
+  botSignals: () => getWithLiveFallback<ApiSignal[]>('/api/signals', v => !v || v.length === 0),
+  botExpress: () => getWithLiveFallback<ApiExpress[]>('/api/express', v => !v || v.length === 0),
+  botTotals:  () => getWithLiveFallback<ApiSignal[]>('/api/totals', v => !v || v.length === 0),
+  botWeek:    () => getWithLiveFallback<ApiSignal | null>('/api/week', v => !v || !(v as any).team1),
   botStats:   () => get<ApiStats>('/api/stats'),
   // Избранное: сервер узнаёт юзера по x-init-data (подпись Telegram WebApp).
   // toggle → бот пришлёт уведомление об исходе матча; botFavorites отдаёт и
