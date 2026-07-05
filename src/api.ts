@@ -1,4 +1,5 @@
 let BASE = ''
+let LIVE = ''  // живой API (cloudflare-туннель) — для POST и персональных данных
 
 async function resolveBase(): Promise<void> {
   // Always fetch api-config.json first — server updates it automatically on each tunnel restart
@@ -6,11 +7,22 @@ async function resolveBase(): Promise<void> {
     const r = await fetch(`${import.meta.env.BASE_URL}api-config.json`, { cache: 'no-store' })
     if (r.ok) {
       const cfg = await r.json()
-      if (cfg.apiUrl) { BASE = cfg.apiUrl; return }
+      if (cfg.apiUrl) { BASE = cfg.apiUrl }
     }
   } catch { /* ignore */ }
-  // Fallback to build-time URL
-  BASE = import.meta.env.VITE_API_URL ?? ''
+  if (!BASE) BASE = import.meta.env.VITE_API_URL ?? ''
+
+  // apiUrl может указывать на СТАТИЧЕСКИЕ снапшоты (gh-pages) — они не
+  // принимают POST и не знают юзера. Для избранного нужен живой сервер:
+  // его адрес бот публикует в tunnel-info.json при каждом рестарте туннеля.
+  try {
+    const r = await fetch(`${import.meta.env.BASE_URL}tunnel-info.json`, { cache: 'no-store' })
+    if (r.ok) {
+      const cfg = await r.json()
+      if (cfg.tunnelUrl) { LIVE = cfg.tunnelUrl }
+    }
+  } catch { /* ignore */ }
+  if (!LIVE) LIVE = BASE
 }
 
 const _ready = resolveBase()
@@ -32,9 +44,22 @@ async function get<T>(path: string): Promise<T> {
   return res.json()
 }
 
+async function getLive<T>(path: string): Promise<T> {
+  await _ready
+  const res = await fetch(`${LIVE}${path}`, {
+    headers: {
+      'x-init-data': initData(),
+      'ngrok-skip-browser-warning': '1',
+      'cf-skip-browser-warning': '1',
+    },
+  })
+  if (!res.ok) throw new Error(`API ${path} → ${res.status}`)
+  return res.json()
+}
+
 async function post<T>(path: string, body: unknown): Promise<T> {
   await _ready
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(`${LIVE}${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -87,7 +112,7 @@ export const api = {
   // рассчитанные матчи за последние 12ч (result: win/lose + score)
   toggleFavorite: (sport: string, home: string, away: string) =>
     post<{ ok: boolean; favorited?: boolean }>('/api/favorite', { sport, home, away }),
-  botFavorites: () => get<ApiFavorite[]>('/api/favorites'),
+  botFavorites: () => getLive<ApiFavorite[]>('/api/favorites'),
 }
 
 export interface ApiFavorite {
