@@ -44,6 +44,18 @@ interface FunnelState {
 
 const DEV_PRO_KEY = 'chimera_dev_pro'
 
+// Персист «открытых» карточек в списке между запусками: юзер открыл карту →
+// закрыл приложение → снова открыл → карта всё ещё помечена «открыто»
+// (кнопка «Смотреть», а не «Открыть»), заново открывать не нужно.
+const LS_VIEWED   = 'chimera_viewed_cards'
+const LS_EXPANDED = 'chimera_expanded_cards'
+function readIds(key: string): string[] {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : [] } catch { return [] }
+}
+function writeIds(key: string, ids: string[]) {
+  try { localStorage.setItem(key, JSON.stringify(ids.slice(-60))) } catch { /* ignore */ }
+}
+
 export const useFunnel = create<FunnelState>((set, get) => ({
   screen: 'splash',
   stake: 100,
@@ -52,8 +64,8 @@ export const useFunnel = create<FunnelState>((set, get) => ({
   proDaysLeft: 7,
   cardOpen: false,
   funnelSignalIdx: null,
-  viewedCardIds: [],
-  expandedCardIds: [],
+  viewedCardIds: readIds(LS_VIEWED),
+  expandedCardIds: readIds(LS_EXPANDED),
   go: (screen) => set(s => {
     // Pro никогда не попадает в онбординг-воронку — любой переход туда
     // (включая кнопку «назад» с главного экрана) уводит на home.
@@ -71,6 +83,14 @@ export const useFunnel = create<FunnelState>((set, get) => ({
   setProDaysLeft: (proDaysLeft) => set({ proDaysLeft }),
   setCardOpen: (cardOpen) => set({ cardOpen }),
   setFunnelSignalIdx: (funnelSignalIdx) => set({ funnelSignalIdx }),
-  markViewed: (id) => set(s => ({ viewedCardIds: s.viewedCardIds.includes(id) ? s.viewedCardIds : [...s.viewedCardIds, id] })),
-  expandCard: (id) => set(s => ({ expandedCardIds: s.expandedCardIds.includes(id) ? s.expandedCardIds : [...s.expandedCardIds, id] })),
+  markViewed: (id) => set(s => {
+    if (s.viewedCardIds.includes(id)) return s
+    const next = [...s.viewedCardIds, id]; writeIds(LS_VIEWED, next)
+    return { viewedCardIds: next }
+  }),
+  expandCard: (id) => set(s => {
+    if (s.expandedCardIds.includes(id)) return s
+    const next = [...s.expandedCardIds, id]; writeIds(LS_EXPANDED, next)
+    return { expandedCardIds: next }
+  }),
 }))

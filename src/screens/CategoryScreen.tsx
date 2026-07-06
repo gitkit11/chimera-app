@@ -56,27 +56,24 @@ const AGENTS_META = [
   { role: 'SH', name: 'Shadow',    icon: shadowIcon, accent: '#60A5FA' },
 ]
 
-// Модульный кэш карточек и избранного — переживает перемонтирование экрана
-// (App даёт CategoryScreen key={screen}, из-за чего смена категории раньше
-// сбрасывала данные в null и на секунду мелькал экран «Нет сигналов»).
-let _cardsCache: Record<string, Card[]> | null = null
-let _favsCache: Card[] | null = null
+// Кэш карточек и избранного. Держим и в модуле (мгновенно при смене вкладок),
+// и в localStorage — чтобы после ПОЛНОГО перезапуска приложения список
+// рисовался сразу из прошлого сеанса, а не мелькал «Нет сигналов» пока идёт
+// первая загрузка. Свежие данные подтягиваются фоновым запросом и заменяют.
+const LS_CARDS = 'chimera_cards_cache'
+const LS_FAVS  = 'chimera_favs_cache'
+function readJSON<T>(key: string): T | null {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null } catch { return null }
+}
+let _cardsCache: Record<string, Card[]> | null = readJSON<Record<string, Card[]>>(LS_CARDS)
+let _favsCache: Card[] | null = readJSON<Card[]>(LS_FAVS)
 
-// Персист между запусками приложения. App.tsx читает эти ключи на старте:
-//  • последняя категория (список карт) — куда вернуть, если детальная закрыта;
-//  • открытый матч {screen, id} — если юзер закрыл Telegram с открытой
-//    карточкой, при следующем запуске она откроется сама.
+// Персист последней категории (списка карт) между запусками — App.tsx вернёт
+// сюда на старте. Детальную карточку НЕ переоткрываем: возвращаем в список,
+// где нужная карта уже помечена «открыто» (см. persist viewedCardIds в сторе).
 const LAST_CAT_KEY = 'chimera_last_category'
-const OPEN_KEY = 'chimera_open_card'
-type OpenRef = { screen: string; id: string }
 function saveLastCategory(screen: string) {
   try { localStorage.setItem(LAST_CAT_KEY, screen) } catch { /* ignore */ }
-}
-function saveOpenRef(ref: OpenRef | null) {
-  try { ref ? localStorage.setItem(OPEN_KEY, JSON.stringify(ref)) : localStorage.removeItem(OPEN_KEY) } catch { /* ignore */ }
-}
-function readOpenRef(): OpenRef | null {
-  try { const v = localStorage.getItem(OPEN_KEY); return v ? JSON.parse(v) : null } catch { return null }
 }
 
 type ExpressLeg = { sport: string; match: string; pick: string; odds: string; conf: number; color: string }
@@ -403,6 +400,7 @@ export default function CategoryScreen() {
       if (wkR.status === 'fulfilled' && wkR.value && wkR.value.team1)
         upd['home-week'] = [mapSignal(wkR.value, 'week')]
       _cardsCache = upd
+      try { localStorage.setItem(LS_CARDS, JSON.stringify(upd)) } catch { /* ignore */ }
       setLiveCards(upd)
     }).catch(() => { if (!_cardsCache) setLiveCards({}) })
   }, [])
@@ -411,7 +409,11 @@ export default function CategoryScreen() {
   useEffect(() => {
     if (screen !== 'home-favorites') return
     api.botFavorites()
-      .then(fs => { const m = fs.map(mapFavorite); _favsCache = m; setServerFavs(m) })
+      .then(fs => {
+        const m = fs.map(mapFavorite); _favsCache = m
+        try { localStorage.setItem(LS_FAVS, JSON.stringify(m)) } catch { /* ignore */ }
+        setServerFavs(m)
+      })
       .catch(() => { /* оставляем кэш */ })
   }, [screen])
 
@@ -457,25 +459,12 @@ export default function CategoryScreen() {
     setFlipped(false)
     setOpenCard(c)
     setCardOpen(true)
-    saveOpenRef({ screen, id: c.id })   // переживёт перезапуск приложения
   }
-  const closeDetail = () => { setOpenCard(null); setFlipped(false); setCardOpen(false); saveOpenRef(null) }
+  const closeDetail = () => { setOpenCard(null); setFlipped(false); setCardOpen(false) }
   const flip = () => setFlipped(p=>!p)
 
   // Запоминаем последнюю категорию — App.tsx вернёт сюда при следующем запуске
   useEffect(() => { saveLastCategory(screen) }, [screen])
-
-  // Восстановление открытого матча после перезапуска: как только подгрузились
-  // данные текущей категории — находим сохранённый матч и открываем его сам.
-  useEffect(() => {
-    if (openCard || isLoading) return
-    const ref = readOpenRef()
-    if (!ref || ref.screen !== screen) return
-    const found = cards.find(c => c.id === ref.id)
-    if (found) { markViewed(found.id); setOpenCard(found); setCardOpen(true) }
-    else saveOpenRef(null)   // матч устарел/исчез — чистим, чтобы не залипало
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveCards, serverFavs, screen])
 
 
   // ── DETAIL SCREEN ─────────────────────────────────────────────────────────
@@ -993,7 +982,8 @@ export default function CategoryScreen() {
           <div style={{ fontFamily:f,fontWeight:900,fontSize:22,lineHeight:1 }}>{meta.label}</div>
         </div>
         <div style={{ fontFamily:mono,fontSize:9.5,color:'rgba(255,255,255,.35)',letterSpacing:'.1em' }}>
-          {cards.length>0?`${cards.length} сигнал${cards.length!==1?'а':''} · Сегодня`:'Нет сигналов'}
+          {isLoading ? 'Загрузка…'
+            : cards.length>0?`${cards.length} сигнал${cards.length!==1?'а':''} · Сегодня`:'Нет сигналов'}
         </div>
       </div>
 

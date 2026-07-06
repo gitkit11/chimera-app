@@ -269,12 +269,6 @@ export default function App() {
     const lastCat = (() => {
       try { return localStorage.getItem('chimera_last_category') } catch { return null }
     })()
-    // Открытый матч (юзер закрыл Telegram с открытой карточкой) — ведём в его
-    // категорию, там CategoryScreen сам откроет карточку.
-    const openRef = (() => {
-      try { const v = localStorage.getItem('chimera_open_card'); return v ? JSON.parse(v) : null }
-      catch { return null }
-    })()
     const FUNNEL: Screen[] = ['splash', 'cover', 'stake-select',
       'card-reveal', 'signal-cards', 'paywall', 'verify', 'stawki-steps']
 
@@ -282,12 +276,10 @@ export default function App() {
       setPro(u.isPro)
       setProDays(u.daysLeft)
       // Куда вести после сплэша:
-      // 1) был открыт матч → в его категорию (карточка откроется сама);
-      // 2) был в списке категории → в тот же список;
-      // 3) иначе подписчику онбординг не нужен → на home.
+      // 1) был в списке категории → в тот же список (детальную НЕ открываем);
+      // 2) иначе подписчику онбординг не нужен → на home.
       const dest: Screen | null =
-        (openRef && CATS.includes(openRef.screen)) ? openRef.screen as Screen
-        : (lastCat && CATS.includes(lastCat as Screen)) ? lastCat as Screen
+        (lastCat && CATS.includes(lastCat as Screen)) ? lastCat as Screen
         : u.isPro ? 'home'
         : null
       if (!dest) return
@@ -326,7 +318,10 @@ export default function App() {
             <div style={{ width: 28, height: 28, border: '2.5px solid rgba(167,139,250,.2)', borderTopColor: '#A78BFA', borderRadius: '50%', animation: 'sc-spin .8s linear infinite' }} />
           </div>
         }>
-          <AnimatePresence mode="wait">
+          {/* Без mode="wait": новый экран появляется СРАЗУ поверх старого, а не
+              ждёт, пока старый доиграет уход — иначе при «назад» старый экран
+              на миг «не пропадал». Экраны на весь экран с фоном → чистый переход. */}
+          <AnimatePresence>
             {screen === 'splash'       && <SplashScreen key="splash" />}
             {screen === 'cover'        && <Cover        key="cover" />}
             {screen === 'stake-select' && <StakeSelect  key="stake-select" />}
