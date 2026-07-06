@@ -78,6 +78,43 @@ function cardKey(c: Card): string {
   return c.cardType === 'express' ? c.id : `${c.sport}:${c.home}:${c.away}`
 }
 
+// Кастомные золотые иконки вместо системных эмодзи 🏦 / 👑
+function BankIcon({ size = 12 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={{ display:'block' }}>
+      <defs>
+        <linearGradient id="chBank" x1="12" y1="3" x2="12" y2="20" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FDE68A"/><stop offset="100%" stopColor="#D97706"/>
+        </linearGradient>
+      </defs>
+      <path d="M12 3 3 8.2h18L12 3Z" fill="url(#chBank)"/>
+      <rect x="5"  y="9.6" width="2" height="7.2" rx="0.4" fill="url(#chBank)"/>
+      <rect x="9"  y="9.6" width="2" height="7.2" rx="0.4" fill="url(#chBank)"/>
+      <rect x="13" y="9.6" width="2" height="7.2" rx="0.4" fill="url(#chBank)"/>
+      <rect x="17" y="9.6" width="2" height="7.2" rx="0.4" fill="url(#chBank)"/>
+      <rect x="3.4" y="17.4" width="17.2" height="2.4" rx="0.7" fill="url(#chBank)"/>
+    </svg>
+  )
+}
+function CrownIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      style={{ display:'block', filter:'drop-shadow(0 1px 2px rgba(180,83,9,.5))' }}>
+      <defs>
+        <linearGradient id="chCrown" x1="12" y1="4" x2="12" y2="20" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FEF3C7"/><stop offset="52%" stopColor="#FBBF24"/><stop offset="100%" stopColor="#D97706"/>
+        </linearGradient>
+      </defs>
+      <path d="M3.6 8.2 7 12l5-6 5 6 3.4-3.8-1.5 9.3a1 1 0 0 1-1 .85H6.1a1 1 0 0 1-1-.85L3.6 8.2Z"
+        fill="url(#chCrown)" stroke="#B45309" strokeWidth=".5" strokeLinejoin="round"/>
+      <circle cx="3.7"  cy="8.2" r="1.35" fill="#FDE68A"/>
+      <circle cx="12"   cy="6"   r="1.5"  fill="#FEF9C3"/>
+      <circle cx="20.3" cy="8.2" r="1.35" fill="#FDE68A"/>
+      <rect x="6" y="18.3" width="12" height="1.9" rx="0.9" fill="url(#chCrown)"/>
+    </svg>
+  )
+}
+
 type ExpressLeg = { sport: string; match: string; pick: string; odds: string; conf: number; color: string }
 
 type Card = {
@@ -537,7 +574,7 @@ export default function CategoryScreen() {
               {isWeek ? (
                 <div style={{ display:'flex',alignItems:'center',gap:6,padding:'4px 12px',borderRadius:20,
                   background:'rgba(0,0,0,.55)',backdropFilter:'blur(8px)',border:'1px solid rgba(234,179,8,.35)' }}>
-                  <span style={{ fontSize:12 }}>👑</span>
+                  <CrownIcon size={13}/>
                   <span style={{ fontFamily:mono,fontSize:9,fontWeight:800,letterSpacing:'.18em',color:'#EAB308' }}>ВЫБОР НЕДЕЛИ</span>
                 </div>
               ) : (
@@ -732,7 +769,7 @@ export default function CategoryScreen() {
                     <div style={{ marginBottom:12,padding:'8px 14px',borderRadius:10,
                       background:'rgba(234,179,8,.1)',border:'1px solid rgba(234,179,8,.25)',
                       display:'flex',alignItems:'center',gap:8 }}>
-                      <span style={{ fontSize:14 }}>👑</span>
+                      <CrownIcon size={15}/>
                       <span style={{ fontFamily:mono,fontSize:9,fontWeight:700,letterSpacing:'.2em',color:'#EAB308' }}>ЛУЧШИЙ СИГНАЛ НЕДЕЛИ · CHIMERA AI</span>
                     </div>
                   )}
@@ -1189,12 +1226,13 @@ export default function CategoryScreen() {
                   {/* 🏦 Банкер дня: пик с максимальной калиброванной вероятностью,
                       прошедший все проверки (исторически заходят ~84%) */}
                   {c.isBanker && (
-                    <div style={{ position:'absolute',top:8,right:10,zIndex:21,
+                    <div style={{ position:'absolute',top:8,right:48,zIndex:6,
                       padding:'3px 8px',borderRadius:8,
                       background:'rgba(234,179,8,.18)',border:'1px solid rgba(234,179,8,.5)',
                       fontFamily:mono,fontSize:7,fontWeight:800,
                       letterSpacing:'.14em',color:'#EAB308',
-                      boxShadow:'0 0 12px rgba(234,179,8,.25)' }}>🏦 БАНКЕР ДНЯ</div>
+                      display:'flex',alignItems:'center',gap:4,
+                      boxShadow:'0 0 12px rgba(234,179,8,.25)' }}><BankIcon size={11}/>БАНКЕР ДНЯ</div>
                   )}
 
                   {/* Week: gradient overlay gold-tinted */}
@@ -1226,7 +1264,7 @@ export default function CategoryScreen() {
                   {/* Week crown + label */}
                   {isWeek && (
                     <div style={{ position:'absolute',top:12,left:14,zIndex:3,display:'flex',alignItems:'center',gap:6 }}>
-                      <span style={{ fontSize:16 }}>👑</span>
+                      <CrownIcon size={17}/>
                       <span style={{ fontFamily:mono,fontSize:8.5,fontWeight:800,letterSpacing:'.2em',color:'#EAB308' }}>ВЫБОР НЕДЕЛИ</span>
                     </div>
                   )}
