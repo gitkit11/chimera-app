@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useMotionValue, useTransform, animate as animateMV } from 'framer-motion'
 import { useFunnel } from '../store/funnel'
 import { haptic } from '../haptic'
 import footballIcon   from '../assets/icons/football.svg'
@@ -319,38 +319,55 @@ function LineMoveWidget({ lm }: { lm: { open:string;curr:string;delta:string;dir
   )
 }
 
-// Свайп-строка (как в мессенджерах): тянешь карточку влево → ОТКРЫВАЕТСЯ
-// кнопка «Удалить», и только тап по ней удаляет. Два осознанных действия —
-// случайно не удалить. Свайп вправо/тап по карточке — закрыть.
+// Свайп-строка (как в мессенджерах). Тянешь карточку влево → из-под неё
+// ПЛАВНО проявляется стеклянная панель «Удалить» (в покое её не видно —
+// никакого красного по краям). Тап по панели удаляет. Свайп вправо / тап по
+// карточке — закрыть. Два осознанных действия — случайно не удалить.
 function SwipeRow({ children, onDelete, height, radius }:
   { children: React.ReactNode; onDelete: () => void; height: number; radius: number }) {
-  const [revealed, setRevealed] = useState(false)
-  const [removing, setRemoving] = useState(false)
-  const REVEAL = 88
+  const REVEAL = 84
+  const x = useMotionValue(0)
+  const [open, setOpen] = useState(false)
+  // Прозрачность и масштаб панели завязаны на само движение пальца:
+  // при x=0 панель невидима (opacity 0) → красного по контуру нет вообще.
+  const panelOpacity = useTransform(x, [-REVEAL, -14, 0], [1, 0, 0])
+  const iconScale    = useTransform(x, [-REVEAL, -44], [1, 0.72])
+  const snap = (to: number) => animateMV(x, to, { type:'spring', stiffness:520, damping:46 })
+  const doDelete = () => { haptic('medium'); animateMV(x, -560, { duration:0.22 }).then(onDelete) }
   return (
-    <div style={{ position:'relative', borderRadius:radius, overflow:'hidden', height,
-      flexShrink:0 }}>
-      {/* Кнопка удаления — открывается свайпом влево, кликабельна только тогда */}
-      <div onClick={() => { haptic('medium'); setRemoving(true) }}
-        style={{ position:'absolute', top:0, right:0, bottom:0, width:REVEAL,
-          background:'#DC2626', cursor:'pointer',
-          display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3,
-          pointerEvents: revealed ? 'auto' : 'none' }}>
-        <span style={{ fontSize:19 }}>🗑</span>
-        <span style={{ fontFamily:mono, fontSize:9, fontWeight:800, color:'#fff',
-          letterSpacing:'.05em' }}>Удалить</span>
-      </div>
+    <div style={{ position:'relative', borderRadius:radius, overflow:'hidden', height, flexShrink:0 }}>
+      {/* Стеклянная панель удаления — с отступами, скруглением под стиль */}
+      <M.div onClick={() => { if (open) doDelete() }}
+        style={{ position:'absolute', top:7, right:7, bottom:7, width:REVEAL-10,
+          borderRadius:Math.max(10, radius-5), opacity:panelOpacity,
+          pointerEvents: open ? 'auto' : 'none', cursor:'pointer',
+          background:'linear-gradient(135deg,rgba(190,18,60,.32) 0%,rgba(136,19,55,.24) 100%)',
+          border:'1px solid rgba(244,63,94,.42)',
+          boxShadow:'inset 0 1px 0 rgba(255,255,255,.08), 0 0 14px rgba(244,63,94,.14)',
+          backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)' as any,
+          display:'flex', alignItems:'center', justifyContent:'center' }}>
+        <M.div style={{ scale:iconScale, display:'flex', flexDirection:'column',
+          alignItems:'center', gap:5 }}>
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+            <path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m2 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7"
+              stroke="#FDA4AF" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M10 11v6M14 11v6" stroke="#FDA4AF" strokeWidth="1.7" strokeLinecap="round"/>
+          </svg>
+          <span style={{ fontFamily:mono, fontSize:8.5, fontWeight:800, color:'#FECDD3',
+            letterSpacing:'.1em' }}>УДАЛИТЬ</span>
+        </M.div>
+      </M.div>
       <M.div drag="x" dragDirectionLock
-        dragConstraints={{ left:-REVEAL, right:0 }} dragElastic={0.06}
-        onDragEnd={(_e:any, info:any) => setRevealed(info.offset.x < -44)}
-        animate={{ x: removing ? -560 : revealed ? -REVEAL : 0 }}
-        transition={{ type:'spring', stiffness:400, damping:40 }}
-        onAnimationComplete={() => { if (removing) onDelete() }}
-        style={{ position:'relative', height:'100%', touchAction:'pan-y', zIndex:2 }}>
+        dragConstraints={{ left:-REVEAL, right:0 }} dragElastic={0.05}
+        style={{ x, position:'relative', height:'100%', touchAction:'pan-y', zIndex:2 }}
+        onDragEnd={(_e:any, info:any) => {
+          const shouldOpen = info.offset.x < -REVEAL / 2
+          setOpen(shouldOpen); snap(shouldOpen ? -REVEAL : 0)
+        }}>
         {children}
-        {/* Когда кнопка открыта — тап по карточке её закрывает (не открывает матч) */}
-        {revealed && !removing && (
-          <div onClick={(e:React.MouseEvent) => { e.stopPropagation(); setRevealed(false) }}
+        {/* Панель открыта — тап по карточке закрывает её (а не открывает матч) */}
+        {open && (
+          <div onClick={(e:React.MouseEvent) => { e.stopPropagation(); setOpen(false); snap(0) }}
             style={{ position:'absolute', inset:0, zIndex:9 }} />
         )}
       </M.div>
