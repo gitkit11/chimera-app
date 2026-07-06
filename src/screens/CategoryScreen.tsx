@@ -348,10 +348,28 @@ function SwipeRow({ children, onDelete, height, radius }:
           display:'flex', alignItems:'center', justifyContent:'center' }}>
         <M.div style={{ scale:iconScale, display:'flex', flexDirection:'column',
           alignItems:'center', gap:5 }}>
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
-            <path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m2 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7"
-              stroke="#FDA4AF" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M10 11v6M14 11v6" stroke="#FDA4AF" strokeWidth="1.7" strokeLinecap="round"/>
+          {/* Кастомная корзина: градиент розово-малиновый, крышка, рёбра, блик */}
+          <svg width="23" height="23" viewBox="0 0 24 24" fill="none"
+            style={{ filter:'drop-shadow(0 1px 3px rgba(225,29,72,.45))' }}>
+            <defs>
+              <linearGradient id="chTrash" x1="12" y1="3" x2="12" y2="21" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#FFE4E6"/>
+                <stop offset="48%" stopColor="#FB7185"/>
+                <stop offset="100%" stopColor="#E11D48"/>
+              </linearGradient>
+            </defs>
+            {/* Ручка */}
+            <path d="M9.4 5.1V4.5A1.5 1.5 0 0 1 10.9 3h2.2a1.5 1.5 0 0 1 1.5 1.5v.6"
+              stroke="url(#chTrash)" strokeWidth="1.5" strokeLinecap="round"/>
+            {/* Крышка */}
+            <rect x="4.7" y="5.1" width="14.6" height="2.7" rx="1.35" fill="url(#chTrash)"/>
+            {/* Корпус — конусный бак с округлым низом */}
+            <path d="M6.4 8.4h11.2l-.86 10.1A2.1 2.1 0 0 1 14.66 20.5H9.34a2.1 2.1 0 0 1-2.08-1.9L6.4 8.4Z"
+              fill="url(#chTrash)" fillOpacity="0.2"
+              stroke="url(#chTrash)" strokeWidth="1.5" strokeLinejoin="round"/>
+            {/* Рёбра */}
+            <path d="M10 11.2v6M12 11.2v6M14 11.2v6"
+              stroke="url(#chTrash)" strokeWidth="1.3" strokeLinecap="round" opacity="0.9"/>
           </svg>
           <span style={{ fontFamily:mono, fontSize:8.5, fontWeight:800, color:'#FECDD3',
             letterSpacing:'.1em' }}>УДАЛИТЬ</span>
