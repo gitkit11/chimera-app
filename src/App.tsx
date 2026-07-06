@@ -284,6 +284,30 @@ export default function App() {
     }).catch(() => {})
   }, [])
 
+  // Telegram часто НЕ перезагружает мини-апп при повторном открытии, а держит
+  // его в памяти и возвращает на тот же экран. Ловим возврат видимости и, если
+  // юзер был в категории/профиле/поддержке, отправляем в ГЛАВНОЕ МЕНЮ — чтобы
+  // «открыть заново» всегда открывало главное, а не последнюю категорию.
+  useEffect(() => {
+    const DEEP: Screen[] = ['home-signals', 'home-express', 'home-totals',
+      'home-week', 'home-favorites', 'profile', 'support', 'support-chat']
+    let hiddenAt = 0
+    const onVis = () => {
+      if (document.visibilityState === 'hidden') {
+        hiddenAt = Date.now()
+        return
+      }
+      // Вернулись во вкладку. Если отсутствовали заметное время (не мельком
+      // переключились) и сидим в глубоком экране — на главное меню.
+      const away = hiddenAt ? Date.now() - hiddenAt : 0
+      if (away < 1500) return
+      const cur = useFunnel.getState().screen
+      if (DEEP.includes(cur)) useFunnel.getState().go('home')
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => document.removeEventListener('visibilitychange', onVis)
+  }, [])
+
   return (
     <div id="app" className="relative max-w-[440px] mx-auto"
       style={{ background: '#04020D', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
