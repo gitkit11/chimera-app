@@ -100,7 +100,7 @@ function mapSignal(s: ApiSignal, cardType: 'signal' | 'total' | 'week'): Card {
     time: ok ? dt.toLocaleTimeString('ru', { hour:'2-digit', minute:'2-digit' }) : '—',
     date: ok ? dt.toLocaleDateString('ru', { day:'numeric', month:'short' }) : '—',
     bg: SPORT_BG[s.sport] ?? footballBg,
-    homeLogo: null, awayLogo: null,
+    homeLogo: s.homeLogo ?? null, awayLogo: s.awayLogo ?? null,
     probs: cardType === 'total' ? (() => {
       const pOver  = s.prob_over  !== undefined ? Math.round(s.prob_over)  : conf
       const pUnder = 100 - pOver
@@ -160,7 +160,8 @@ function mapFavorite(fv: ApiFavorite, i: number): Card {
     odds: fv.odds ? String(fv.odds) : '—', ev: '—', score: 0, rarity: 'rare',
     time: ok ? dt.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' }) : '—',
     date: ok ? dt.toLocaleDateString('ru', { day: 'numeric', month: 'short' }) : '—',
-    bg: SPORT_BG[fv.sport] ?? footballBg, homeLogo: null, awayLogo: null,
+    bg: SPORT_BG[fv.sport] ?? footballBg,
+    homeLogo: fv.homeLogo ?? null, awayLogo: fv.awayLogo ?? null,
     probs: [], stats: [],
     lineMove: { open: '—', curr: '—', delta: '0', dir: 'down', note: '' },
     agentTexts: ['—', '—', '—'], shadow: '—',

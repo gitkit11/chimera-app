@@ -143,6 +143,7 @@ export interface FunnelSignal {
   sport: string; team1: string; team2: string
   prediction: string; pick_team: string; odds: number
   confidence: number; matchTime: string; league: string; isBanker?: boolean
+  homeLogo?: string | null; awayLogo?: string | null
 }
 
 export interface ApiFavorite {
@@ -151,6 +152,7 @@ export interface ApiFavorite {
   prediction: string; odds: number | null
   matchTime: string; league: string
   result?: 'win' | 'lose'; score?: string
+  homeLogo?: string | null; awayLogo?: string | null
 }
 
 export interface ApiSignal {
@@ -158,6 +160,7 @@ export interface ApiSignal {
   team1: string; team2: string; league: string; matchTime: string
   prediction: string; confidence: number; odds: number; ev: number
   rarity: string; chimera_score: number; isPro?: boolean
+  homeLogo?: string | null; awayLogo?: string | null
   agents?: { statistician?: string; scout?: string; arbiter?: string; llama?: string }
   signals_passed?: number; signals_total?: number
   avg_total?: number; avg_total_label?: string

@@ -216,6 +216,8 @@ export default function SignalCards() {
     tag:   realSig.league || base.tag,
     home:  realSig.team1,
     away:  realSig.team2,
+    homeLogo: realSig.homeLogo ?? null,
+    awayLogo: realSig.awayLogo ?? null,
     rec:   realSig.prediction,
     odds:  realSig.odds ? realSig.odds.toFixed(2) : base.odds,
     score: realSig.confidence || base.score,
