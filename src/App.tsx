@@ -269,6 +269,12 @@ export default function App() {
     const lastCat = (() => {
       try { return localStorage.getItem('chimera_last_category') } catch { return null }
     })()
+    // Открытый матч (юзер закрыл Telegram с открытой карточкой) — ведём в его
+    // категорию, там CategoryScreen сам откроет карточку.
+    const openRef = (() => {
+      try { const v = localStorage.getItem('chimera_open_card'); return v ? JSON.parse(v) : null }
+      catch { return null }
+    })()
     const FUNNEL: Screen[] = ['splash', 'cover', 'stake-select',
       'card-reveal', 'signal-cards', 'paywall', 'verify', 'stawki-steps']
 
@@ -276,10 +282,12 @@ export default function App() {
       setPro(u.isPro)
       setProDays(u.daysLeft)
       // Куда вести после сплэша:
-      // 1) юзер был в списке категории → возвращаем в тот же список;
-      // 2) иначе подписчику онбординг-воронка не нужна → сразу на home.
+      // 1) был открыт матч → в его категорию (карточка откроется сама);
+      // 2) был в списке категории → в тот же список;
+      // 3) иначе подписчику онбординг не нужен → на home.
       const dest: Screen | null =
-        (lastCat && CATS.includes(lastCat as Screen)) ? lastCat as Screen
+        (openRef && CATS.includes(openRef.screen)) ? openRef.screen as Screen
+        : (lastCat && CATS.includes(lastCat as Screen)) ? lastCat as Screen
         : u.isPro ? 'home'
         : null
       if (!dest) return

@@ -62,12 +62,21 @@ const AGENTS_META = [
 let _cardsCache: Record<string, Card[]> | null = null
 let _favsCache: Card[] | null = null
 
-// Персист ПОСЛЕДНЕЙ КАТЕГОРИИ между запусками: юзер был в списке карт →
-// закрыл Telegram → снова открыл → возвращаем в тот же список (а НЕ в
-// детальную карточку на весь экран). App.tsx читает ключ на старте.
+// Персист между запусками приложения. App.tsx читает эти ключи на старте:
+//  • последняя категория (список карт) — куда вернуть, если детальная закрыта;
+//  • открытый матч {screen, id} — если юзер закрыл Telegram с открытой
+//    карточкой, при следующем запуске она откроется сама.
 const LAST_CAT_KEY = 'chimera_last_category'
+const OPEN_KEY = 'chimera_open_card'
+type OpenRef = { screen: string; id: string }
 function saveLastCategory(screen: string) {
   try { localStorage.setItem(LAST_CAT_KEY, screen) } catch { /* ignore */ }
+}
+function saveOpenRef(ref: OpenRef | null) {
+  try { ref ? localStorage.setItem(OPEN_KEY, JSON.stringify(ref)) : localStorage.removeItem(OPEN_KEY) } catch { /* ignore */ }
+}
+function readOpenRef(): OpenRef | null {
+  try { const v = localStorage.getItem(OPEN_KEY); return v ? JSON.parse(v) : null } catch { return null }
 }
 
 type ExpressLeg = { sport: string; match: string; pick: string; odds: string; conf: number; color: string }
@@ -313,33 +322,40 @@ function LineMoveWidget({ lm }: { lm: { open:string;curr:string;delta:string;dir
   )
 }
 
-// Свайп-строка: тянешь карточку влево → уезжает и удаляется (как чат в
-// мессенджере). Тап и вертикальный скролл работают как обычно.
+// Свайп-строка (как в мессенджерах): тянешь карточку влево → ОТКРЫВАЕТСЯ
+// кнопка «Удалить», и только тап по ней удаляет. Два осознанных действия —
+// случайно не удалить. Свайп вправо/тап по карточке — закрыть.
 function SwipeRow({ children, onDelete, height, radius }:
   { children: React.ReactNode; onDelete: () => void; height: number; radius: number }) {
+  const [revealed, setRevealed] = useState(false)
   const [removing, setRemoving] = useState(false)
+  const REVEAL = 88
   return (
     <div style={{ position:'relative', borderRadius:radius, overflow:'hidden', height,
       flexShrink:0 }}>
-      {/* Фон удаления — виден, когда карточка отъезжает влево */}
-      <div style={{ position:'absolute', inset:0, borderRadius:radius,
-        background:'linear-gradient(90deg,rgba(127,29,29,.35) 0%,#DC2626 100%)',
-        display:'flex', alignItems:'center', justifyContent:'flex-end',
-        paddingRight:22, gap:9 }}>
-        <span style={{ fontFamily:mono, fontSize:11, fontWeight:800, color:'#fff',
-          letterSpacing:'.1em' }}>УДАЛИТЬ</span>
-        <span style={{ fontSize:17 }}>🗑</span>
+      {/* Кнопка удаления — открывается свайпом влево, кликабельна только тогда */}
+      <div onClick={() => { haptic('medium'); setRemoving(true) }}
+        style={{ position:'absolute', top:0, right:0, bottom:0, width:REVEAL,
+          background:'#DC2626', cursor:'pointer',
+          display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3,
+          pointerEvents: revealed ? 'auto' : 'none' }}>
+        <span style={{ fontSize:19 }}>🗑</span>
+        <span style={{ fontFamily:mono, fontSize:9, fontWeight:800, color:'#fff',
+          letterSpacing:'.05em' }}>Удалить</span>
       </div>
       <M.div drag="x" dragDirectionLock
-        dragConstraints={{ left:0, right:0 }} dragElastic={{ left:0.9, right:0.04 }}
-        onDragEnd={(_e:any, info:any) => {
-          if (info.offset.x < -90) { haptic('medium'); setRemoving(true) }
-        }}
-        animate={{ x: removing ? -520 : 0 }}
-        transition={{ type:'spring', stiffness:420, damping:38 }}
+        dragConstraints={{ left:-REVEAL, right:0 }} dragElastic={0.06}
+        onDragEnd={(_e:any, info:any) => setRevealed(info.offset.x < -44)}
+        animate={{ x: removing ? -560 : revealed ? -REVEAL : 0 }}
+        transition={{ type:'spring', stiffness:400, damping:40 }}
         onAnimationComplete={() => { if (removing) onDelete() }}
-        style={{ position:'relative', height:'100%', touchAction:'pan-y' }}>
+        style={{ position:'relative', height:'100%', touchAction:'pan-y', zIndex:2 }}>
         {children}
+        {/* Когда кнопка открыта — тап по карточке её закрывает (не открывает матч) */}
+        {revealed && !removing && (
+          <div onClick={(e:React.MouseEvent) => { e.stopPropagation(); setRevealed(false) }}
+            style={{ position:'absolute', inset:0, zIndex:9 }} />
+        )}
       </M.div>
     </div>
   )
@@ -441,12 +457,25 @@ export default function CategoryScreen() {
     setFlipped(false)
     setOpenCard(c)
     setCardOpen(true)
+    saveOpenRef({ screen, id: c.id })   // переживёт перезапуск приложения
   }
-  const closeDetail = () => { setOpenCard(null); setFlipped(false); setCardOpen(false) }
+  const closeDetail = () => { setOpenCard(null); setFlipped(false); setCardOpen(false); saveOpenRef(null) }
   const flip = () => setFlipped(p=>!p)
 
   // Запоминаем последнюю категорию — App.tsx вернёт сюда при следующем запуске
   useEffect(() => { saveLastCategory(screen) }, [screen])
+
+  // Восстановление открытого матча после перезапуска: как только подгрузились
+  // данные текущей категории — находим сохранённый матч и открываем его сам.
+  useEffect(() => {
+    if (openCard || isLoading) return
+    const ref = readOpenRef()
+    if (!ref || ref.screen !== screen) return
+    const found = cards.find(c => c.id === ref.id)
+    if (found) { markViewed(found.id); setOpenCard(found); setCardOpen(true) }
+    else saveOpenRef(null)   // матч устарел/исчез — чистим, чтобы не залипало
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveCards, serverFavs, screen])
 
 
   // ── DETAIL SCREEN ─────────────────────────────────────────────────────────
