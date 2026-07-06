@@ -261,13 +261,13 @@ export default function App() {
   const setProDays  = useFunnel(s => s.setProDaysLeft)
 
   useEffect(() => {
-    // Сохранённая открытая карточка (юзер открыл матч и закрыл приложение) —
-    // читаем localStorage напрямую, чтобы не тянуть lazy-экран в главный бандл.
+    // Последняя категория (список карт), где был юзер — вернём его туда, а НЕ
+    // в детальную карточку. Читаем localStorage напрямую, чтобы не тянуть
+    // lazy-экран в главный бандл.
     const CATS: Screen[] = ['home-signals', 'home-express', 'home-totals',
       'home-week', 'home-favorites']
-    const openRef = (() => {
-      try { const v = localStorage.getItem('chimera_open_card'); return v ? JSON.parse(v) : null }
-      catch { return null }
+    const lastCat = (() => {
+      try { return localStorage.getItem('chimera_last_category') } catch { return null }
     })()
     const FUNNEL: Screen[] = ['splash', 'cover', 'stake-select',
       'card-reveal', 'signal-cards', 'paywall', 'verify', 'stawki-steps']
@@ -276,11 +276,10 @@ export default function App() {
       setPro(u.isPro)
       setProDays(u.daysLeft)
       // Куда вести после сплэша:
-      // 1) есть сохранённая открытая карточка → сразу в её категорию (там
-      //    CategoryScreen сам восстановит открытый матч);
+      // 1) юзер был в списке категории → возвращаем в тот же список;
       // 2) иначе подписчику онбординг-воронка не нужна → сразу на home.
       const dest: Screen | null =
-        (openRef && CATS.includes(openRef.screen)) ? openRef.screen as Screen
+        (lastCat && CATS.includes(lastCat as Screen)) ? lastCat as Screen
         : u.isPro ? 'home'
         : null
       if (!dest) return
@@ -331,7 +330,7 @@ export default function App() {
             {screen === 'home'         && <HomeScreen   key="home" />}
             {(screen === 'home-signals' || screen === 'home-express' ||
               screen === 'home-totals'  || screen === 'home-week'    ||
-              screen === 'home-favorites') && <CategoryScreen key={screen} />}
+              screen === 'home-favorites') && <CategoryScreen key="category" />}
             {screen === 'profile'      && <ProfileScreen  key="profile" />}
             {screen === 'support'      && <SupportScreen  key="support" />}
             {screen === 'support-chat' && <SupportChat    key="support-chat" />}

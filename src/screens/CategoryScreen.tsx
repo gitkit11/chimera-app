@@ -62,15 +62,12 @@ const AGENTS_META = [
 let _cardsCache: Record<string, Card[]> | null = null
 let _favsCache: Card[] | null = null
 
-// Персист открытой карточки между запусками приложения: юзер открыл матч →
-// закрыл Telegram → снова открыл → матч уже открыт. Храним {screen, id}.
-const OPEN_KEY = 'chimera_open_card'
-type OpenRef = { screen: string; id: string }
-function saveOpenRef(ref: OpenRef | null) {
-  try { ref ? localStorage.setItem(OPEN_KEY, JSON.stringify(ref)) : localStorage.removeItem(OPEN_KEY) } catch { /* ignore */ }
-}
-export function readOpenRef(): OpenRef | null {
-  try { const v = localStorage.getItem(OPEN_KEY); return v ? JSON.parse(v) : null } catch { return null }
+// Персист ПОСЛЕДНЕЙ КАТЕГОРИИ между запусками: юзер был в списке карт →
+// закрыл Telegram → снова открыл → возвращаем в тот же список (а НЕ в
+// детальную карточку на весь экран). App.tsx читает ключ на старте.
+const LAST_CAT_KEY = 'chimera_last_category'
+function saveLastCategory(screen: string) {
+  try { localStorage.setItem(LAST_CAT_KEY, screen) } catch { /* ignore */ }
 }
 
 type ExpressLeg = { sport: string; match: string; pick: string; odds: string; conf: number; color: string }
@@ -316,6 +313,38 @@ function LineMoveWidget({ lm }: { lm: { open:string;curr:string;delta:string;dir
   )
 }
 
+// Свайп-строка: тянешь карточку влево → уезжает и удаляется (как чат в
+// мессенджере). Тап и вертикальный скролл работают как обычно.
+function SwipeRow({ children, onDelete, height, radius }:
+  { children: React.ReactNode; onDelete: () => void; height: number; radius: number }) {
+  const [removing, setRemoving] = useState(false)
+  return (
+    <div style={{ position:'relative', borderRadius:radius, overflow:'hidden', height,
+      flexShrink:0 }}>
+      {/* Фон удаления — виден, когда карточка отъезжает влево */}
+      <div style={{ position:'absolute', inset:0, borderRadius:radius,
+        background:'linear-gradient(90deg,rgba(127,29,29,.35) 0%,#DC2626 100%)',
+        display:'flex', alignItems:'center', justifyContent:'flex-end',
+        paddingRight:22, gap:9 }}>
+        <span style={{ fontFamily:mono, fontSize:11, fontWeight:800, color:'#fff',
+          letterSpacing:'.1em' }}>УДАЛИТЬ</span>
+        <span style={{ fontSize:17 }}>🗑</span>
+      </div>
+      <M.div drag="x" dragDirectionLock
+        dragConstraints={{ left:0, right:0 }} dragElastic={{ left:0.9, right:0.04 }}
+        onDragEnd={(_e:any, info:any) => {
+          if (info.offset.x < -90) { haptic('medium'); setRemoving(true) }
+        }}
+        animate={{ x: removing ? -520 : 0 }}
+        transition={{ type:'spring', stiffness:420, damping:38 }}
+        onAnimationComplete={() => { if (removing) onDelete() }}
+        style={{ position:'relative', height:'100%', touchAction:'pan-y' }}>
+        {children}
+      </M.div>
+    </div>
+  )
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function CategoryScreen() {
   const screen             = useFunnel(s=>s.screen)
@@ -412,23 +441,12 @@ export default function CategoryScreen() {
     setFlipped(false)
     setOpenCard(c)
     setCardOpen(true)
-    saveOpenRef({ screen, id: c.id })   // запоминаем — переживёт перезапуск
   }
-  const closeDetail = () => { setOpenCard(null); setFlipped(false); setCardOpen(false); saveOpenRef(null) }
+  const closeDetail = () => { setOpenCard(null); setFlipped(false); setCardOpen(false) }
   const flip = () => setFlipped(p=>!p)
 
-  // Восстановление открытой карточки после перезапуска приложения: как только
-  // подгрузились данные текущей категории — находим сохранённый матч и
-  // открываем его сразу (без повторного тапа).
-  useEffect(() => {
-    if (openCard || isLoading) return
-    const ref = readOpenRef()
-    if (!ref || ref.screen !== screen) return
-    const found = cards.find(c => c.id === ref.id)
-    if (found) { markViewed(found.id); setOpenCard(found); setCardOpen(true) }
-    else saveOpenRef(null)   // матч исчез (устарел) — чистим, чтобы не залипало
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveCards, serverFavs, screen])
+  // Запоминаем последнюю категорию — App.tsx вернёт сюда при следующем запуске
+  useEffect(() => { saveLastCategory(screen) }, [screen])
 
 
   // ── DETAIL SCREEN ─────────────────────────────────────────────────────────
@@ -991,8 +1009,8 @@ export default function CategoryScreen() {
               const isOpened = isProExpanded || viewedCardIds.includes(c.id)
               const cardH = isWeek ? 190 : isExpress ? 132 : 118
 
-              return (
-                <M.div key={c.id}
+              const cardEl = (
+                <M.div
                   initial={{opacity:0,y:14}} animate={{opacity:1,y:0}}
                   transition={{delay:.05*i,type:'spring',stiffness:200}}
                   style={{ position:'relative',borderRadius:isWeek?20:16,overflow:'hidden',height:cardH }}>
@@ -1002,17 +1020,6 @@ export default function CategoryScreen() {
                     objectFit:'cover',
                     filter:`brightness(${(isLocked||isProClosed) ? .32 : isWeek ? .6 : .52}) saturate(${(isLocked||isProClosed) ? .3 : isWeek ? .85 : .7})`,
                     transition:'filter .4s' }}/>
-
-                  {/* Крестик удаления — только во вкладке «Избранное» */}
-                  {screen==='home-favorites' && (
-                    <M.button whileTap={{ scale:.82 }} onClick={(e:React.MouseEvent)=>removeFav(c,e)}
-                      aria-label="Удалить из избранного"
-                      style={{ position:'absolute',top:8,right:8,zIndex:20,width:26,height:26,
-                        borderRadius:8,border:'1px solid rgba(255,255,255,.14)',cursor:'pointer',
-                        background:'rgba(4,2,13,.72)',backdropFilter:'blur(6px)',
-                        display:'flex',alignItems:'center',justifyContent:'center',
-                        color:'rgba(255,255,255,.8)',fontSize:13,lineHeight:1,padding:0 }}>✕</M.button>
-                  )}
 
                   {isLocked ? (
                     /* ── LOCKED: funnel-style dark + placeholder ── */
@@ -1323,6 +1330,13 @@ export default function CategoryScreen() {
 
                 </M.div>
               )
+
+              // Во вкладке «Избранное» — свайп влево для удаления (как в
+              // мессенджерах). В остальных вкладках карточка как есть.
+              return screen==='home-favorites'
+                ? <SwipeRow key={c.id} height={cardH} radius={isWeek?20:16}
+                    onDelete={()=>removeFav(c)}>{cardEl}</SwipeRow>
+                : <div key={c.id}>{cardEl}</div>
             })}
           </div>
         )}
