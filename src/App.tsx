@@ -285,27 +285,30 @@ export default function App() {
   }, [])
 
   // Telegram часто НЕ перезагружает мини-апп при повторном открытии, а держит
-  // его в памяти и возвращает на тот же экран. Ловим возврат видимости и, если
-  // юзер был в категории/профиле/поддержке, отправляем в ГЛАВНОЕ МЕНЮ — чтобы
-  // «открыть заново» всегда открывало главное, а не последнюю категорию.
+  // его в памяти и возвращает на тот же экран. Ловим возврат приложения на
+  // передний план и, если юзер был в категории/детальной/профиле/поддержке,
+  // отправляем в ГЛАВНОЕ МЕНЮ — чтобы «открыть заново» всегда открывало главное.
   useEffect(() => {
     const DEEP: Screen[] = ['home-signals', 'home-express', 'home-totals',
       'home-week', 'home-favorites', 'profile', 'support', 'support-chat']
-    let hiddenAt = 0
-    const onVis = () => {
-      if (document.visibilityState === 'hidden') {
-        hiddenAt = Date.now()
-        return
-      }
-      // Вернулись во вкладку. Если отсутствовали заметное время (не мельком
-      // переключились) и сидим в глубоком экране — на главное меню.
-      const away = hiddenAt ? Date.now() - hiddenAt : 0
-      if (away < 1500) return
+    const goHomeIfDeep = () => {
       const cur = useFunnel.getState().screen
       if (DEEP.includes(cur)) useFunnel.getState().go('home')
     }
+    // 1) стандартное событие: вкладка снова видима
+    const onVis = () => { if (document.visibilityState === 'visible') goHomeIfDeep() }
     document.addEventListener('visibilitychange', onVis)
-    return () => document.removeEventListener('visibilitychange', onVis)
+    // 2) возврат из bfcache
+    window.addEventListener('pageshow', goHomeIfDeep)
+    // 3) родное событие Telegram (Bot API 8.0+) — на случай, если webview не
+    //    шлёт visibilitychange при реоткрытии
+    const tg = (window as any).Telegram?.WebApp
+    try { tg?.onEvent?.('activated', goHomeIfDeep) } catch { /* нет поддержки */ }
+    return () => {
+      document.removeEventListener('visibilitychange', onVis)
+      window.removeEventListener('pageshow', goHomeIfDeep)
+      try { tg?.offEvent?.('activated', goHomeIfDeep) } catch { /* ignore */ }
+    }
   }, [])
 
   return (
