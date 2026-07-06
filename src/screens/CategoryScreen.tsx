@@ -380,10 +380,9 @@ function SwipeRow({ children, onDelete, height, radius }:
         style={{ position:'absolute', top:7, right:7, bottom:7, width:REVEAL-10,
           borderRadius:Math.max(10, radius-5), opacity:panelOpacity,
           pointerEvents: open ? 'auto' : 'none', cursor:'pointer',
-          background:'linear-gradient(135deg,rgba(190,18,60,.32) 0%,rgba(136,19,55,.24) 100%)',
+          background:'linear-gradient(135deg,rgba(120,20,45,.94) 0%,rgba(80,14,38,.92) 100%)',
           border:'1px solid rgba(244,63,94,.42)',
           boxShadow:'inset 0 1px 0 rgba(255,255,255,.08), 0 0 14px rgba(244,63,94,.14)',
-          backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)' as any,
           display:'flex', alignItems:'center', justifyContent:'center' }}>
         <M.div style={{ scale:iconScale, display:'flex', flexDirection:'column',
           alignItems:'center', gap:5 }}>
@@ -1103,10 +1102,11 @@ export default function CategoryScreen() {
               const cardEl = (
                 <M.div
                   initial={{opacity:0,y:14}} animate={{opacity:1,y:0}}
-                  transition={{delay:.05*i,type:'spring',stiffness:200}}
+                  transition={{delay:Math.min(i,6)*.05,type:'spring',stiffness:200}}
                   style={{ position:'relative',borderRadius:isWeek?20:16,overflow:'hidden',height:cardH }}>
 
-                  <img src={c.bg} alt="" onError={(e)=>{(e.target as HTMLImageElement).style.display='none'}}
+                  <img src={c.bg} alt="" loading="lazy" decoding="async"
+                    onError={(e)=>{(e.target as HTMLImageElement).style.display='none'}}
                     style={{ position:'absolute',inset:0,width:'100%',height:'100%',
                     objectFit:'cover',
                     filter:`brightness(${(isLocked||isProClosed) ? .32 : isWeek ? .6 : .52}) saturate(${(isLocked||isProClosed) ? .3 : isWeek ? .85 : .7})`,
