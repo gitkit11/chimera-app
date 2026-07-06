@@ -274,8 +274,8 @@ export default function App() {
           if (FUNNEL.includes(cur)) useFunnel.getState().go('home')
         }
         // Со сплэша не выдёргиваем мгновенно: даём логотипу показаться
-        // ~1.4 сек (авторизация теперь быстрая — прыжок был раньше анимации)
-        if (useFunnel.getState().screen === 'splash') setTimeout(jump, 1400)
+        // ~1.6 сек (авторизация теперь быстрая — прыжок был раньше анимации)
+        if (useFunnel.getState().screen === 'splash') setTimeout(jump, 1600)
         else jump()
       }
     }).catch(() => {})
