@@ -28,7 +28,6 @@ import basketballBg from '../assets/bg/basketball.jpg'
 import tennisBg    from '../assets/bg/tennis.jpg'
 import esportsBg   from '../assets/bg/esports.jpg'
 import { api, type ApiSignal, type ApiExpress, type ApiFavorite } from '../api'
-import { persistSet } from '../persist'
 
 const M = motion as any
 const f    = "'Clash Display','Unbounded',sans-serif"
@@ -72,11 +71,6 @@ let _favsCache: Card[] | null = readJSON<Card[]>(LS_FAVS)
 // Персист последней категории (списка карт) между запусками — App.tsx вернёт
 // сюда на старте. Детальную карточку НЕ переоткрываем: возвращаем в список,
 // где нужная карта уже помечена «открыто» (см. persist viewedCardIds в сторе).
-const LAST_CAT_KEY = 'chimera_last_category'
-function saveLastCategory(screen: string) {
-  persistSet(LAST_CAT_KEY, screen)   // localStorage + Telegram CloudStorage
-}
-
 // Стабильный ключ карточки по САМОМУ матчу (а не по позиции sig_00N, которая
 // съезжает после обновления данных). По нему помечаем «открыто» — метка
 // держится за конкретным матчем и переживает перезапуск.
@@ -505,9 +499,6 @@ export default function CategoryScreen() {
   }
   const closeDetail = () => { setOpenCard(null); setFlipped(false); setCardOpen(false) }
   const flip = () => setFlipped(p=>!p)
-
-  // Запоминаем последнюю категорию — App.tsx вернёт сюда при следующем запуске
-  useEffect(() => { saveLastCategory(screen) }, [screen])
 
 
   // ── DETAIL SCREEN ─────────────────────────────────────────────────────────

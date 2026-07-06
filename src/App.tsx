@@ -2,7 +2,6 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { lazy, Suspense, useEffect } from 'react'
 import { useFunnel, hydrateOpenedFromCloud } from './store/funnel'
 import type { Screen } from './store/funnel'
-import { persistLoadCloud } from './persist'
 import { haptic } from './haptic'
 import { api } from './api'
 import { ChunkErrorBoundary } from './ChunkErrorBoundary'
@@ -266,45 +265,23 @@ export default function App() {
     // закрытии мог очиститься) — карточки останутся помеченными «открыто».
     hydrateOpenedFromCloud()
 
-    // Последняя категория (список карт), где был юзер — вернём его туда, а НЕ
-    // в детальную карточку.
-    const CATS: Screen[] = ['home-signals', 'home-express', 'home-totals',
-      'home-week', 'home-favorites']
-    let lastCat = (() => {
-      try { return localStorage.getItem('chimera_last_category') } catch { return null }
-    })()
     const FUNNEL: Screen[] = ['splash', 'cover', 'stake-select',
       'card-reveal', 'signal-cards', 'paywall', 'verify', 'stawki-steps']
 
     api.user().then(u => {
       setPro(u.isPro)
       setProDays(u.daysLeft)
-      const dest: Screen | null =
-        (lastCat && CATS.includes(lastCat as Screen)) ? lastCat as Screen
-        : u.isPro ? 'home'
-        : null
-      if (!dest) return
+      // Подписчику онбординг-воронка не нужна → всегда открываем ГЛАВНОЕ МЕНЮ
+      // (не последнюю категорию). Метки «открыто» на карточках сохраняются
+      // отдельно через CloudStorage.
+      if (!u.isPro) return
       const jump = () => {
         const cur = useFunnel.getState().screen
-        if (FUNNEL.includes(cur)) useFunnel.getState().go(dest)
+        if (FUNNEL.includes(cur)) useFunnel.getState().go('home')
       }
       if (useFunnel.getState().screen === 'splash') setTimeout(jump, 1600)
       else jump()
     }).catch(() => {})
-
-    // Если localStorage был очищен Telegram — достаём последнюю категорию из
-    // облака и, если юзер сейчас на home/splash, ведём в неё.
-    if (!lastCat) {
-      persistLoadCloud(['chimera_last_category'], (data) => {
-        const cc = data['chimera_last_category']
-        if (cc && CATS.includes(cc as Screen)) {
-          lastCat = cc
-          try { localStorage.setItem('chimera_last_category', cc) } catch { /* ignore */ }
-          const cur = useFunnel.getState().screen
-          if (cur === 'home' || cur === 'splash') useFunnel.getState().go(cc as Screen)
-        }
-      })
-    }
   }, [])
 
   return (
