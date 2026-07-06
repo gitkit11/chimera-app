@@ -50,7 +50,7 @@ async function get<T>(path: string): Promise<T> {
 
 async function getLive<T>(path: string): Promise<T> {
   await _ready
-  const res = await fetch(`${LIVE}${path}`, {
+  const doFetch = () => fetch(`${LIVE}${path}`, {
     cache: 'no-store',
     headers: {
       'x-init-data': initData(),
@@ -58,13 +58,21 @@ async function getLive<T>(path: string): Promise<T> {
       'cf-skip-browser-warning': '1',
     },
   })
+  let res = await doFetch().catch(() => null)
+  // Туннель мог смениться (рестарт API) → LIVE устарел. Перечитываем адрес и
+  // повторяем один раз — иначе открытая сессия висит на мёртвом туннеле.
+  if (!res || !res.ok) {
+    await resolveBase()
+    res = await doFetch()
+  }
   if (!res.ok) throw new Error(`API ${path} → ${res.status}`)
   return res.json()
 }
 
 async function post<T>(path: string, body: unknown): Promise<T> {
   await _ready
-  const res = await fetch(`${LIVE}${path}`, {
+  const payload = JSON.stringify(body)
+  const doFetch = () => fetch(`${LIVE}${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -72,8 +80,15 @@ async function post<T>(path: string, body: unknown): Promise<T> {
       'ngrok-skip-browser-warning': '1',
       'cf-skip-browser-warning': '1',
     },
-    body: JSON.stringify(body),
+    body: payload,
   })
+  let res = await doFetch().catch(() => null)
+  // Смена туннеля / протухший LIVE → перечитываем адрес из tunnel-info.json и
+  // повторяем POST. Без этого избранное «сохраняется» лишь локально.
+  if (!res || !res.ok) {
+    await resolveBase()
+    res = await doFetch()
+  }
   if (!res.ok) throw new Error(`API ${path} → ${res.status}`)
   return res.json()
 }

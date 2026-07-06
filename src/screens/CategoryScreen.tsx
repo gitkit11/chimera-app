@@ -601,7 +601,7 @@ export default function CategoryScreen() {
                 </div>
               )}
               <div style={{ display:'flex',gap:8 }}>
-                <M.button whileTap={{scale:.88}} onClick={()=>{const k=cardKey(c); isFav?removeFavorite(k):addFavorite(k)}}
+                <M.button whileTap={{scale:.88}} onClick={()=>toggleFav(c)}
                   style={{ width:36,height:36,borderRadius:10,border:'none',cursor:'pointer',
                     background:isFav?'rgba(255,215,0,.25)':'rgba(0,0,0,.5)',backdropFilter:'blur(8px)',
                     display:'flex',alignItems:'center',justifyContent:'center',
