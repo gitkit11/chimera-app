@@ -486,6 +486,14 @@ export default function CategoryScreen() {
         const m = fs.map(mapFavorite); _favsCache = m
         try { localStorage.setItem(LS_FAVS, JSON.stringify(m)) } catch { /* ignore */ }
         setServerFavs(m)
+        // Синхронизируем локальные звёздочки с бэком (истина) по ключу матча.
+        // Оставляем и локально-добавленные ключи (ещё не долетевшие до сервера).
+        const serverKeys = fs.filter(f => f.team1 && f.team2)
+                             .map(f => `${f.sport}:${f.team1}:${f.team2}`)
+        useFunnel.setState(st => {
+          const localMatch = st.favorites.filter(k => k.includes(':'))
+          return { favorites: Array.from(new Set([...serverKeys, ...localMatch])) }
+        })
       })
       .catch(() => { /* оставляем кэш */ })
   }, [screen])
@@ -498,8 +506,16 @@ export default function CategoryScreen() {
   if (isLoading) {
     cards = []
   } else if (screen==='home-favorites') {
-    const local = Object.values(CARDS).flat().filter(c=>favorites.includes(c.id))
-      .filter(c => !serverFavs.some(sf => sf.home === c.home && sf.away === c.away))
+    // Избранное = серверные (истина) + локально добавленные, ещё не пришедшие
+    // с сервера. Идентичность — КЛЮЧ МАТЧА (cardKey), а НЕ позиционный c.id:
+    // иначе один sig_00N цепляет одноимённые карточки из всех категорий →
+    // флуд и дубли React-ключей → краш/тёмный экран. Дедупим по ключу.
+    const seen = new Set(serverFavs.map(sf => `${sf.sport}:${sf.home}:${sf.away}`))
+    const local: Card[] = []
+    for (const c of Object.values(CARDS).flat()) {
+      const k = cardKey(c)
+      if (favorites.includes(k) && !seen.has(k)) { seen.add(k); local.push(c) }
+    }
     cards = [...serverFavs, ...local]
   } else {
     cards = CARDS[screen] || []
@@ -507,7 +523,8 @@ export default function CategoryScreen() {
 
   const toggleFav = (c: Card, e?: React.MouseEvent) => {
     e?.stopPropagation()
-    favorites.includes(c.id) ? removeFavorite(c.id) : addFavorite(c.id)
+    const k = cardKey(c)
+    favorites.includes(k) ? removeFavorite(k) : addFavorite(k)
     // Сервер: включает уведомление об исходе матча в Telegram-боте.
     // Fire-and-forget: локальный стор работает даже если API недоступен.
     if (c.cardType !== 'express' && c.away)
@@ -519,7 +536,7 @@ export default function CategoryScreen() {
   const removeFav = (c: Card, e?: React.MouseEvent) => {
     e?.stopPropagation()
     haptic('medium')
-    removeFavorite(c.id)
+    removeFavorite(cardKey(c))
     setServerFavs(prev => {
       const next = prev.filter(sf => !(sf.home === c.home && sf.away === c.away))
       _favsCache = next
@@ -543,7 +560,7 @@ export default function CategoryScreen() {
     const isWeek    = c.cardType==='week'
     const isExpress = c.cardType==='express'
     const isTotal   = c.cardType==='total'
-    const isFav     = favorites.includes(c.id)
+    const isFav     = favorites.includes(cardKey(c))
     const accent     = isWeek ? '#EAB308' : isExpress ? '#F97316' : isTotal ? '#34D399' : '#A78BFA'
     const accentBg   = isWeek ? 'rgba(234,179,8,.18)' : isExpress ? 'rgba(249,115,22,.18)' : isTotal ? 'rgba(52,211,153,.14)' : 'rgba(139,92,246,.18)'
     const accentBd   = isWeek ? 'rgba(234,179,8,.45)' : isExpress ? 'rgba(249,115,22,.4)' : isTotal ? 'rgba(52,211,153,.4)' : 'rgba(167,139,250,.45)'
@@ -584,7 +601,7 @@ export default function CategoryScreen() {
                 </div>
               )}
               <div style={{ display:'flex',gap:8 }}>
-                <M.button whileTap={{scale:.88}} onClick={()=>isFav?removeFavorite(c.id):addFavorite(c.id)}
+                <M.button whileTap={{scale:.88}} onClick={()=>{const k=cardKey(c); isFav?removeFavorite(k):addFavorite(k)}}
                   style={{ width:36,height:36,borderRadius:10,border:'none',cursor:'pointer',
                     background:isFav?'rgba(255,215,0,.25)':'rgba(0,0,0,.5)',backdropFilter:'blur(8px)',
                     display:'flex',alignItems:'center',justifyContent:'center',
@@ -1085,7 +1102,7 @@ export default function CategoryScreen() {
               const freeIdx = screen === 'home-signals'
                 ? (funnelSignalIdx !== null ? funnelSignalIdx : 0)
                 : -1
-              const isFav      = favorites.includes(c.id)
+              const isFav      = favorites.includes(cardKey(c))
               const isWeek     = c.cardType==='week'
               const isExpress  = c.cardType==='express'
               // non-PRO locked (paywall): show lock icon
@@ -1425,10 +1442,13 @@ export default function CategoryScreen() {
 
               // Во вкладке «Избранное» — свайп влево для удаления (как в
               // мессенджерах). В остальных вкладках карточка как есть.
+              // Ключ = ключ матча (стабилен, уникален), НЕ позиционный c.id:
+              // c.id (sig_00N) повторяется между категориями → дубли ключей →
+              // React ломает reconciliation → фриз/тёмный экран при переходе.
               return screen==='home-favorites'
-                ? <SwipeRow key={c.id} height={cardH} radius={isWeek?20:16}
+                ? <SwipeRow key={_ck} height={cardH} radius={isWeek?20:16}
                     onDelete={()=>removeFav(c)}>{cardEl}</SwipeRow>
-                : <div key={c.id}>{cardEl}</div>
+                : <div key={_ck}>{cardEl}</div>
             })}
           </div>
         )}
