@@ -261,23 +261,36 @@ export default function App() {
   const setProDays  = useFunnel(s => s.setProDaysLeft)
 
   useEffect(() => {
+    // Сохранённая открытая карточка (юзер открыл матч и закрыл приложение) —
+    // читаем localStorage напрямую, чтобы не тянуть lazy-экран в главный бандл.
+    const CATS: Screen[] = ['home-signals', 'home-express', 'home-totals',
+      'home-week', 'home-favorites']
+    const openRef = (() => {
+      try { const v = localStorage.getItem('chimera_open_card'); return v ? JSON.parse(v) : null }
+      catch { return null }
+    })()
+    const FUNNEL: Screen[] = ['splash', 'cover', 'stake-select',
+      'card-reveal', 'signal-cards', 'paywall', 'verify', 'stawki-steps']
+
     api.user().then(u => {
       setPro(u.isPro)
       setProDays(u.daysLeft)
-      // Подписчику онбординг-воронка не нужна: он уже купил.
-      // Пропускаем первые экраны и ведём сразу к сигналам.
-      if (u.isPro) {
-        const FUNNEL: Screen[] = ['splash', 'cover', 'stake-select',
-          'card-reveal', 'signal-cards', 'paywall', 'verify', 'stawki-steps']
-        const jump = () => {
-          const cur = useFunnel.getState().screen
-          if (FUNNEL.includes(cur)) useFunnel.getState().go('home')
-        }
-        // Со сплэша не выдёргиваем мгновенно: даём логотипу показаться
-        // ~1.6 сек (авторизация теперь быстрая — прыжок был раньше анимации)
-        if (useFunnel.getState().screen === 'splash') setTimeout(jump, 1600)
-        else jump()
+      // Куда вести после сплэша:
+      // 1) есть сохранённая открытая карточка → сразу в её категорию (там
+      //    CategoryScreen сам восстановит открытый матч);
+      // 2) иначе подписчику онбординг-воронка не нужна → сразу на home.
+      const dest: Screen | null =
+        (openRef && CATS.includes(openRef.screen)) ? openRef.screen as Screen
+        : u.isPro ? 'home'
+        : null
+      if (!dest) return
+      const jump = () => {
+        const cur = useFunnel.getState().screen
+        if (FUNNEL.includes(cur)) useFunnel.getState().go(dest)
       }
+      // Со сплэша не выдёргиваем мгновенно: даём логотипу показаться ~1.6 сек
+      if (useFunnel.getState().screen === 'splash') setTimeout(jump, 1600)
+      else jump()
     }).catch(() => {})
   }, [])
 

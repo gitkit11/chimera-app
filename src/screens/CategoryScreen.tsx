@@ -56,6 +56,23 @@ const AGENTS_META = [
   { role: 'SH', name: 'Shadow',    icon: shadowIcon, accent: '#60A5FA' },
 ]
 
+// Модульный кэш карточек и избранного — переживает перемонтирование экрана
+// (App даёт CategoryScreen key={screen}, из-за чего смена категории раньше
+// сбрасывала данные в null и на секунду мелькал экран «Нет сигналов»).
+let _cardsCache: Record<string, Card[]> | null = null
+let _favsCache: Card[] | null = null
+
+// Персист открытой карточки между запусками приложения: юзер открыл матч →
+// закрыл Telegram → снова открыл → матч уже открыт. Храним {screen, id}.
+const OPEN_KEY = 'chimera_open_card'
+type OpenRef = { screen: string; id: string }
+function saveOpenRef(ref: OpenRef | null) {
+  try { ref ? localStorage.setItem(OPEN_KEY, JSON.stringify(ref)) : localStorage.removeItem(OPEN_KEY) } catch { /* ignore */ }
+}
+export function readOpenRef(): OpenRef | null {
+  try { const v = localStorage.getItem(OPEN_KEY); return v ? JSON.parse(v) : null } catch { return null }
+}
+
 type ExpressLeg = { sport: string; match: string; pick: string; odds: string; conf: number; color: string }
 
 type Card = {
@@ -315,8 +332,10 @@ export default function CategoryScreen() {
   const setCardOpen        = useFunnel(s=>s.setCardOpen)
   const [openCard, setOpenCard] = useState<Card|null>(null)
   const [flipped,  setFlipped]  = useState(false)
-  const [liveCards, setLiveCards] = useState<Record<string, Card[]> | null>(null)
-  const [serverFavs, setServerFavs] = useState<Card[]>([])
+  // Инициализируем из модульного кэша → при возврате в категорию данные видны
+  // мгновенно, без мелькания «Нет сигналов» на перемонтировании.
+  const [liveCards, setLiveCards] = useState<Record<string, Card[]> | null>(_cardsCache)
+  const [serverFavs, setServerFavs] = useState<Card[]>(_favsCache ?? [])
 
   useEffect(() => {
     Promise.allSettled([
@@ -338,16 +357,17 @@ export default function CategoryScreen() {
         upd['home-totals'] = totR.value.map(s => mapSignal(s, 'total'))
       if (wkR.status === 'fulfilled' && wkR.value && wkR.value.team1)
         upd['home-week'] = [mapSignal(wkR.value, 'week')]
+      _cardsCache = upd
       setLiveCards(upd)
-    }).catch(() => setLiveCards({}))
+    }).catch(() => { if (!_cardsCache) setLiveCards({}) })
   }, [])
 
   // Серверное избранное (с исходами за 12ч) — подгружаем при входе на вкладку
   useEffect(() => {
     if (screen !== 'home-favorites') return
     api.botFavorites()
-      .then(fs => setServerFavs(fs.map(mapFavorite)))
-      .catch(() => setServerFavs([]))
+      .then(fs => { const m = fs.map(mapFavorite); _favsCache = m; setServerFavs(m) })
+      .catch(() => { /* оставляем кэш */ })
   }, [screen])
 
   const meta = CATEGORY_META[screen] || CATEGORY_META['home-signals']
@@ -373,14 +393,42 @@ export default function CategoryScreen() {
     if (c.cardType !== 'express' && c.away)
       api.toggleFavorite(c.sport, c.home, c.away).catch(() => {})
   }
+  // Удаление из избранного (крестик на карточке во вкладке «Избранное»):
+  // убираем и локальный, и серверный (в т.ч. уже прошедшие матчи, которые
+  // висели 12ч и раньше удалить было нельзя).
+  const removeFav = (c: Card, e?: React.MouseEvent) => {
+    e?.stopPropagation()
+    haptic('medium')
+    removeFavorite(c.id)
+    setServerFavs(prev => {
+      const next = prev.filter(sf => !(sf.home === c.home && sf.away === c.away))
+      _favsCache = next
+      return next
+    })
+    if (c.away) api.toggleFavorite(c.sport, c.home, c.away).catch(() => {})
+  }
   const openDetail = (c: Card) => {
     markViewed(c.id)
     setFlipped(false)
     setOpenCard(c)
     setCardOpen(true)
+    saveOpenRef({ screen, id: c.id })   // запоминаем — переживёт перезапуск
   }
-  const closeDetail = () => { setOpenCard(null); setFlipped(false); setCardOpen(false) }
+  const closeDetail = () => { setOpenCard(null); setFlipped(false); setCardOpen(false); saveOpenRef(null) }
   const flip = () => setFlipped(p=>!p)
+
+  // Восстановление открытой карточки после перезапуска приложения: как только
+  // подгрузились данные текущей категории — находим сохранённый матч и
+  // открываем его сразу (без повторного тапа).
+  useEffect(() => {
+    if (openCard || isLoading) return
+    const ref = readOpenRef()
+    if (!ref || ref.screen !== screen) return
+    const found = cards.find(c => c.id === ref.id)
+    if (found) { markViewed(found.id); setOpenCard(found); setCardOpen(true) }
+    else saveOpenRef(null)   // матч исчез (устарел) — чистим, чтобы не залипало
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveCards, serverFavs, screen])
 
 
   // ── DETAIL SCREEN ─────────────────────────────────────────────────────────
@@ -954,6 +1002,17 @@ export default function CategoryScreen() {
                     objectFit:'cover',
                     filter:`brightness(${(isLocked||isProClosed) ? .32 : isWeek ? .6 : .52}) saturate(${(isLocked||isProClosed) ? .3 : isWeek ? .85 : .7})`,
                     transition:'filter .4s' }}/>
+
+                  {/* Крестик удаления — только во вкладке «Избранное» */}
+                  {screen==='home-favorites' && (
+                    <M.button whileTap={{ scale:.82 }} onClick={(e:React.MouseEvent)=>removeFav(c,e)}
+                      aria-label="Удалить из избранного"
+                      style={{ position:'absolute',top:8,right:8,zIndex:20,width:26,height:26,
+                        borderRadius:8,border:'1px solid rgba(255,255,255,.14)',cursor:'pointer',
+                        background:'rgba(4,2,13,.72)',backdropFilter:'blur(6px)',
+                        display:'flex',alignItems:'center',justifyContent:'center',
+                        color:'rgba(255,255,255,.8)',fontSize:13,lineHeight:1,padding:0 }}>✕</M.button>
+                  )}
 
                   {isLocked ? (
                     /* ── LOCKED: funnel-style dark + placeholder ── */
