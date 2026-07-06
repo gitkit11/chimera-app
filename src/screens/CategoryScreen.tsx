@@ -1003,7 +1003,7 @@ export default function CategoryScreen() {
 
   // ── LIST SCREEN ───────────────────────────────────────────────────────────
   return (
-    <M.div initial={{opacity:0,x:40}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-40}} transition={{duration:.28}}
+    <M.div initial={{opacity:0,x:40}} animate={{opacity:1,x:0}} exit={{opacity:0,transition:{duration:.1}}} transition={{duration:.28}}
       style={{ height:'100%',display:'flex',flexDirection:'column',background:'#04020D',overflow:'hidden',position:'relative' }}>
 
       {/* Header */}

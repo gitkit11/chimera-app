@@ -97,7 +97,8 @@ export default function HomeScreen() {
 
   return (
     <M.div
-      initial={{ opacity: 0, x: -40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 40 }}
+      initial={{ opacity: 0, x: -40 }} animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, transition: { duration: .1 } }}
       transition={{ duration: .3 }}
       style={{ height: '100%', display: 'flex', flexDirection: 'column',
         background: '#04020D', overflow: 'hidden' }}
