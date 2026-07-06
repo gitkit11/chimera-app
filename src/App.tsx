@@ -1,7 +1,8 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { lazy, Suspense, useEffect } from 'react'
-import { useFunnel } from './store/funnel'
+import { useFunnel, hydrateOpenedFromCloud } from './store/funnel'
 import type { Screen } from './store/funnel'
+import { persistLoadCloud } from './persist'
 import { haptic } from './haptic'
 import { api } from './api'
 import { ChunkErrorBoundary } from './ChunkErrorBoundary'
@@ -261,12 +262,15 @@ export default function App() {
   const setProDays  = useFunnel(s => s.setProDaysLeft)
 
   useEffect(() => {
+    // Догружаем «открытые» карточки из Telegram CloudStorage (localStorage при
+    // закрытии мог очиститься) — карточки останутся помеченными «открыто».
+    hydrateOpenedFromCloud()
+
     // Последняя категория (список карт), где был юзер — вернём его туда, а НЕ
-    // в детальную карточку. Читаем localStorage напрямую, чтобы не тянуть
-    // lazy-экран в главный бандл.
+    // в детальную карточку.
     const CATS: Screen[] = ['home-signals', 'home-express', 'home-totals',
       'home-week', 'home-favorites']
-    const lastCat = (() => {
+    let lastCat = (() => {
       try { return localStorage.getItem('chimera_last_category') } catch { return null }
     })()
     const FUNNEL: Screen[] = ['splash', 'cover', 'stake-select',
@@ -275,9 +279,6 @@ export default function App() {
     api.user().then(u => {
       setPro(u.isPro)
       setProDays(u.daysLeft)
-      // Куда вести после сплэша:
-      // 1) был в списке категории → в тот же список (детальную НЕ открываем);
-      // 2) иначе подписчику онбординг не нужен → на home.
       const dest: Screen | null =
         (lastCat && CATS.includes(lastCat as Screen)) ? lastCat as Screen
         : u.isPro ? 'home'
@@ -287,10 +288,23 @@ export default function App() {
         const cur = useFunnel.getState().screen
         if (FUNNEL.includes(cur)) useFunnel.getState().go(dest)
       }
-      // Со сплэша не выдёргиваем мгновенно: даём логотипу показаться ~1.6 сек
       if (useFunnel.getState().screen === 'splash') setTimeout(jump, 1600)
       else jump()
     }).catch(() => {})
+
+    // Если localStorage был очищен Telegram — достаём последнюю категорию из
+    // облака и, если юзер сейчас на home/splash, ведём в неё.
+    if (!lastCat) {
+      persistLoadCloud(['chimera_last_category'], (data) => {
+        const cc = data['chimera_last_category']
+        if (cc && CATS.includes(cc as Screen)) {
+          lastCat = cc
+          try { localStorage.setItem('chimera_last_category', cc) } catch { /* ignore */ }
+          const cur = useFunnel.getState().screen
+          if (cur === 'home' || cur === 'splash') useFunnel.getState().go(cc as Screen)
+        }
+      })
+    }
   }, [])
 
   return (

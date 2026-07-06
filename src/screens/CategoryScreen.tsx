@@ -28,6 +28,7 @@ import basketballBg from '../assets/bg/basketball.jpg'
 import tennisBg    from '../assets/bg/tennis.jpg'
 import esportsBg   from '../assets/bg/esports.jpg'
 import { api, type ApiSignal, type ApiExpress, type ApiFavorite } from '../api'
+import { persistSet } from '../persist'
 
 const M = motion as any
 const f    = "'Clash Display','Unbounded',sans-serif"
@@ -73,7 +74,14 @@ let _favsCache: Card[] | null = readJSON<Card[]>(LS_FAVS)
 // где нужная карта уже помечена «открыто» (см. persist viewedCardIds в сторе).
 const LAST_CAT_KEY = 'chimera_last_category'
 function saveLastCategory(screen: string) {
-  try { localStorage.setItem(LAST_CAT_KEY, screen) } catch { /* ignore */ }
+  persistSet(LAST_CAT_KEY, screen)   // localStorage + Telegram CloudStorage
+}
+
+// Стабильный ключ карточки по САМОМУ матчу (а не по позиции sig_00N, которая
+// съезжает после обновления данных). По нему помечаем «открыто» — метка
+// держится за конкретным матчем и переживает перезапуск.
+function cardKey(c: Card): string {
+  return c.cardType === 'express' ? c.id : `${c.sport}:${c.home}:${c.away}`
 }
 
 type ExpressLeg = { sport: string; match: string; pick: string; odds: string; conf: number; color: string }
@@ -490,7 +498,7 @@ export default function CategoryScreen() {
     if (c.away) api.toggleFavorite(c.sport, c.home, c.away).catch(() => {})
   }
   const openDetail = (c: Card) => {
-    markViewed(c.id)
+    markViewed(cardKey(c))
     setFlipped(false)
     setOpenCard(c)
     setCardOpen(true)
@@ -1055,12 +1063,13 @@ export default function CategoryScreen() {
               const isExpress  = c.cardType==='express'
               // non-PRO locked (paywall): show lock icon
               const isLocked   = !isPro && (screen === 'home-signals' ? i !== freeIdx : true)
+              const _ck = cardKey(c)
               // PRO: card not yet expanded in list (dark/closed, no lock)
-              const isProClosed   = isPro && !expandedCardIds.includes(c.id)
+              const isProClosed   = isPro && !expandedCardIds.includes(_ck)
               // PRO: card expanded in list (glow + full info + СМОТРЕТЬ)
-              const isProExpanded = isPro && expandedCardIds.includes(c.id)
+              const isProExpanded = isPro && expandedCardIds.includes(_ck)
               // any mode: card was opened (button shows СМОТРЕТЬ + ↗)
-              const isOpened = isProExpanded || viewedCardIds.includes(c.id)
+              const isOpened = isProExpanded || viewedCardIds.includes(_ck)
               const cardH = isWeek ? 190 : isExpress ? 132 : 118
 
               const cardEl = (
@@ -1157,7 +1166,7 @@ export default function CategoryScreen() {
                         </div>
                         <div className="glow-lavender"
                           style={{ flexShrink:0,width:52,height:50,borderRadius:12 }}>
-                          <M.button whileTap={{scale:.93}} onClick={()=>{ haptic('medium'); expandCard(c.id); openDetail(c) }}
+                          <M.button whileTap={{scale:.93}} onClick={()=>{ haptic('medium'); expandCard(_ck); openDetail(c) }}
                             style={{ width:'100%',height:'100%',borderRadius:12,cursor:'pointer',
                               background:'linear-gradient(135deg,#2D1065,#4C1D95)',
                               border:'1px solid rgba(167,139,250,.4)' as any,

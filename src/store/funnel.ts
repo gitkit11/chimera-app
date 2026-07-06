@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persistGetLocal, persistSet, persistLoadCloud } from '../persist'
 
 export type Screen =
   | 'splash'
@@ -50,10 +51,10 @@ const DEV_PRO_KEY = 'chimera_dev_pro'
 const LS_VIEWED   = 'chimera_viewed_cards'
 const LS_EXPANDED = 'chimera_expanded_cards'
 function readIds(key: string): string[] {
-  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : [] } catch { return [] }
+  try { const v = persistGetLocal(key); return v ? JSON.parse(v) : [] } catch { return [] }
 }
 function writeIds(key: string, ids: string[]) {
-  try { localStorage.setItem(key, JSON.stringify(ids.slice(-60))) } catch { /* ignore */ }
+  persistSet(key, JSON.stringify(ids.slice(-80)))
 }
 
 export const useFunnel = create<FunnelState>((set, get) => ({
@@ -94,3 +95,24 @@ export const useFunnel = create<FunnelState>((set, get) => ({
     return { expandedCardIds: next }
   }),
 }))
+
+// На старте догружаем «открытые» карточки из Telegram CloudStorage (localStorage
+// Telegram при закрытии мог вычистить) и вливаем в стор — карточки остаются
+// помеченными «открыто» после перезапуска.
+export function hydrateOpenedFromCloud() {
+  persistLoadCloud([LS_VIEWED, LS_EXPANDED], (data) => {
+    try {
+      const v: string[] = data[LS_VIEWED]   ? JSON.parse(data[LS_VIEWED])   : []
+      const e: string[] = data[LS_EXPANDED] ? JSON.parse(data[LS_EXPANDED]) : []
+      if (!v.length && !e.length) return
+      useFunnel.setState(s => {
+        const viewed   = Array.from(new Set([...s.viewedCardIds, ...v]))
+        const expanded = Array.from(new Set([...s.expandedCardIds, ...e]))
+        // Зеркалим обратно в localStorage, чтобы дальше читалось синхронно
+        try { localStorage.setItem(LS_VIEWED, JSON.stringify(viewed.slice(-80))) } catch { /* ignore */ }
+        try { localStorage.setItem(LS_EXPANDED, JSON.stringify(expanded.slice(-80))) } catch { /* ignore */ }
+        return { viewedCardIds: viewed, expandedCardIds: expanded }
+      })
+    } catch { /* ignore */ }
+  })
+}
