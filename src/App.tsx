@@ -318,10 +318,7 @@ export default function App() {
             <div style={{ width: 28, height: 28, border: '2.5px solid rgba(167,139,250,.2)', borderTopColor: '#A78BFA', borderRadius: '50%', animation: 'sc-spin .8s linear infinite' }} />
           </div>
         }>
-          {/* Без mode="wait": новый экран появляется СРАЗУ поверх старого, а не
-              ждёт, пока старый доиграет уход — иначе при «назад» старый экран
-              на миг «не пропадал». Экраны на весь экран с фоном → чистый переход. */}
-          <AnimatePresence>
+          <AnimatePresence mode="wait">
             {screen === 'splash'       && <SplashScreen key="splash" />}
             {screen === 'cover'        && <Cover        key="cover" />}
             {screen === 'stake-select' && <StakeSelect  key="stake-select" />}
