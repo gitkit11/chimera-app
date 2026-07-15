@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useFunnel } from '../store/funnel'
 import { haptic } from '../haptic'
+import { api } from '../api'
 import logoIcon from '../assets/icon_dark2.png'
 
 const M  = motion as any
@@ -14,7 +15,7 @@ type Msg = { id: number; from: 'user' | 'ai'; text: string; ts: string }
 
 const WELCOME: Msg = {
   id: 0, from: 'ai',
-  text: 'Привет! Я AI-ассистент Chimera. Скоро смогу отвечать на все вопросы. Пока используй живой суппорт — наши менеджеры ответят в течение часа.',
+  text: 'Привет! Я AI-ассистент Chimera 🦁 Спрашивай что угодно: что это за сервис, как получить доступ, как работают прогнозы, как пользоваться. Отвечу сразу.',
   ts: now(),
 }
 
@@ -46,21 +47,27 @@ export default function SupportChat() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [msgs, typing])
 
-  const send = () => {
+  const send = async () => {
     const text = input.trim()
-    if (!text) return
+    if (!text || typing) return
     const userMsg: Msg = { id: Date.now(), from: 'user', text, ts: now() }
     setMsgs(p => [...p, userMsg])
     setInput('')
     setTyping(true)
-    setTimeout(() => {
-      setTyping(false)
+    try {
+      const { answer } = await api.askSupport(text)
       setMsgs(p => [...p, {
         id: Date.now() + 1, from: 'ai',
-        text: 'Спасибо за вопрос! AI-ассистент пока в разработке. Напиши нашему менеджеру — он ответит быстро.',
-        ts: now(),
+        text: answer || 'Не смог ответить — попробуй ещё раз 🙌', ts: now(),
       }])
-    }, 1800)
+    } catch {
+      setMsgs(p => [...p, {
+        id: Date.now() + 1, from: 'ai',
+        text: 'Связь прервалась. Попробуй ещё раз или загляни позже 🙌', ts: now(),
+      }])
+    } finally {
+      setTyping(false)
+    }
   }
 
   return (
@@ -112,13 +119,13 @@ export default function SupportChat() {
             Chimera <span style={{ color: '#A78BFA' }}>AI</span>
           </div>
           <div style={{ fontFamily: mono, fontSize: 8, color: 'rgba(167,139,250,.6)',
-            letterSpacing: '.1em', marginTop: 3 }}>AI АССИСТЕНТ · СКОРО</div>
+            letterSpacing: '.1em', marginTop: 3 }}>AI АССИСТЕНТ · ОНЛАЙН</div>
         </div>
 
         <div style={{ fontFamily: mono, fontSize: 7, fontWeight: 700, letterSpacing: '.12em',
           color: '#A78BFA', background: 'rgba(139,92,246,.15)',
           border: '1px solid rgba(167,139,250,.25)', padding: '3px 8px', borderRadius: 20 }}>
-          BETA
+          AI
         </div>
       </div>
 

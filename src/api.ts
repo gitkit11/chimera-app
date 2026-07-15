@@ -146,12 +146,25 @@ export const api = {
   // рассчитанные матчи за последние 12ч (result: win/lose + score)
   toggleFavorite: (sport: string, home: string, away: string) =>
     post<{ ok: boolean; favorited?: boolean }>('/api/favorite', { sport, home, away }),
+  // Экспресс в избранное: идентичность — стабильный legsHash (совпадает с
+  // express_log), по нему бот пришлёт исход экспресса (все ноги зашли/мимо).
+  toggleFavoriteExpress: (legsHash: string, label: string, totalOdds: number,
+                          legs: ApiExpress['legs']) =>
+    post<{ ok: boolean; favorited?: boolean }>('/api/favorite',
+      { type: 'express', legsHash, label, totalOdds, legs }),
   botFavorites: () => getLive<ApiFavorite[]>('/api/favorites'),
   // Воронка: бесплатный сигнал 4-го экрана (банкер дня) + фиксация выбора
   // (бот пришлёт пуш с исходом бесплатной ставки)
   funnelSignal: () => getLive<FunnelSignal>('/api/funnel-signal'),
   funnelPick: (sport: string, home: string, away: string) =>
     post<{ ok: boolean }>('/api/funnel-pick', { sport, home, away }),
+  // Аналитика: «юзер дошёл до экрана X» — глубина воронки в админке (/users).
+  // Fire-and-forget, ошибки глотаем — на UX не влияет.
+  track: (screen: string) =>
+    post<{ ok: boolean }>('/api/track', { screen }).catch(() => ({ ok: false })),
+  // ИИ-поддержка: вопрос юзера → ответ ИИ (знает проект, доступ, как работает)
+  askSupport: (question: string) =>
+    post<{ answer: string }>('/api/support', { question }),
 }
 
 export interface FunnelSignal {
@@ -159,6 +172,8 @@ export interface FunnelSignal {
   prediction: string; pick_team: string; odds: number
   confidence: number; matchTime: string; league: string; isBanker?: boolean
   homeLogo?: string | null; awayLogo?: string | null
+  // Бесплатная ставка уже взята этим юзером (одна навсегда) + её исход
+  used?: boolean; result?: 'win' | 'lose' | null
 }
 
 export interface ApiFavorite {
@@ -168,6 +183,9 @@ export interface ApiFavorite {
   matchTime: string; league: string
   result?: 'win' | 'lose'; score?: string
   homeLogo?: string | null; awayLogo?: string | null
+  // Экспресс-избранное
+  type?: string; legsHash?: string; label?: string
+  totalOdds?: number; legs?: ApiExpress['legs']
 }
 
 export interface ApiSignal {
@@ -184,12 +202,16 @@ export interface ApiSignal {
   isBanker?: boolean       // банкер дня: максимум одна карточка
   minOdds?: number | null  // минимальный кэф своей БК, ниже — не ставить
   lineMove?: number | null // движение линии, >0 = умные деньги за нас
+  // Личные встречи пары (кэш H2H на бэке)
+  h2h?: { record: string; total: number; avgTotal?: number | null
+    matches: { date: string; home: string; away: string; score: string }[] } | null
 }
 
 export interface ApiExpress {
   id: string; sport: string; type: string
-  legs: { sport: string; team1: string; team2: string; prediction: string; odds: number; color: string }[]
+  legs: { sport: string; team1: string; team2: string; prediction: string; odds: number; color: string; matchTime?: string }[]
   totalOdds: number; confidence: number; rarity: string; isPro?: boolean; why?: string
+  legsHash?: string; label?: string
 }
 
 export interface ApiStats {
