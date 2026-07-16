@@ -18,9 +18,13 @@ const M = motion as any
 const f    = "'Clash Display','Unbounded',sans-serif"
 const mono = "'JetBrains Mono',monospace"
 
+// Кэш реальных счётчиков между входами в меню — чтобы при повторном заходе
+// сразу показывались последние числа, а не «—» и не макет (флеш 5→2).
+let _countsCache: Record<string, number> = {}
+
 const CATS = [
   {
-    id: 'home-signals' as const, label: 'Сигналы',        sub: '5 сигналов · Сегодня',
+    id: 'home-signals' as const, label: 'Сигналы',        sub: 'Сигналы дня',
     icon: signalsIcon, count: '5',
     photo: sniperBg,
     line: 'linear-gradient(180deg,#6D28D9,#A78BFA,#C4B5FD)',
@@ -28,7 +32,7 @@ const CATS = [
     glow: 'rgba(139,92,246,.25)', accent: '#A78BFA',
   },
   {
-    id: 'home-express' as const, label: 'Экспресс',        sub: '2 экспресса · Мульти',
+    id: 'home-express' as const, label: 'Экспресс',        sub: 'Мульти-ставки',
     icon: expressIcon, count: '2',
     photo: expressCarBg,
     line: 'linear-gradient(180deg,#C2410C,#F97316,#FCD34D)',
@@ -36,7 +40,7 @@ const CATS = [
     glow: 'rgba(249,115,22,.25)', accent: '#F97316',
   },
   {
-    id: 'home-totals' as const,  label: 'Тоталы',          sub: '3 ставки на тотал',
+    id: 'home-totals' as const,  label: 'Тоталы',          sub: 'Ставки на тотал',
     icon: totalsIcon,  count: '3',
     photo: totalsChess,
     line: 'linear-gradient(180deg,#047857,#10B981,#6EE7B7)',
@@ -59,7 +63,7 @@ export default function HomeScreen() {
   const setPro = useFunnel(s => s.setPro)
   const [toast, setToast] = useState<string | null>(null)
   const holdRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const [counts, setCounts] = useState<Record<string,number>>({})
+  const [counts, setCounts] = useState<Record<string,number>>(_countsCache)
 
   useEffect(() => {
     Promise.allSettled([
@@ -68,12 +72,14 @@ export default function HomeScreen() {
       api.botTotals(),
       api.botWeek(),
     ]).then(([s, e, t, w]) => {
-      setCounts({
+      const next = {
         'home-signals': s.status==='fulfilled' ? s.value.length : 0,
         'home-express': e.status==='fulfilled' ? e.value.length : 0,
         'home-totals':  t.status==='fulfilled' ? t.value.length : 0,
         'home-week':    w.status==='fulfilled' && w.value ? 1 : 0,
-      })
+      }
+      _countsCache = next
+      setCounts(next)
     })
   }, [])
 
@@ -228,7 +234,7 @@ export default function HomeScreen() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontFamily: f, fontWeight: 900, fontSize: 16, lineHeight: 1, marginBottom: 5 }}>{cat.label}</div>
                 <div style={{ fontFamily: mono, fontSize: 9, color: 'rgba(255,255,255,.42)' }}>
-                  {counts[cat.id] !== undefined ? `${counts[cat.id]} · Сегодня` : cat.sub}
+                  {cat.sub}
                 </div>
               </div>
 
@@ -238,7 +244,7 @@ export default function HomeScreen() {
                   background: `${cat.accent}15`, border: `1px solid ${cat.accent}35`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span style={{ fontFamily: f, fontWeight: 900, fontSize: 20, color: cat.accent, lineHeight: 1 }}>
-                    {counts[cat.id] ?? cat.count}
+                    {counts[cat.id] ?? '—'}
                   </span>
                 </div>
                 <span style={{ fontFamily: mono, fontSize: 7, color: 'rgba(255,255,255,.2)', letterSpacing: '.08em' }}>сегодня</span>

@@ -253,12 +253,23 @@ const GLOBAL_STYLES = `
   @keyframes sc-shim { 0%,42%{transform:translateX(-100%)} 62%,100%{transform:translateX(220%)} }
 `
 
+// Экраны, отправленные в аналитику за эту сессию (дедуп на фронте;
+// бэк дополнительно дедупит 12ч). splash не трекаем — это не действие юзера.
+const _trackedScreens = new Set<string>()
+
 // ── App ────────────────────────────────────────────────────────────────────
 export default function App() {
   const screen      = useFunnel(s => s.screen)
   const isPro       = useFunnel(s => s.isPro)
   const setPro      = useFunnel(s => s.setPro)
   const setProDays  = useFunnel(s => s.setProDaysLeft)
+
+  // Трекинг глубины: каждый новый экран сессии → POST /api/track
+  useEffect(() => {
+    if (screen === 'splash' || _trackedScreens.has(screen)) return
+    _trackedScreens.add(screen)
+    api.track(screen)
+  }, [screen])
 
   useEffect(() => {
     // Догружаем «открытые» карточки из Telegram CloudStorage (localStorage при
@@ -329,7 +340,7 @@ export default function App() {
         {isPro ? '💎 PRO' : '🔒 FREE'}
       </M.button>}
 
-      <div style={{ flex: 1, overflow: 'hidden', position: 'relative', minHeight: 0 }}>
+      <div style={{ flex: 1, overflow: 'hidden', position: 'relative', minHeight: 0, background: '#04020D' }}>
         <ChunkErrorBoundary>
         <Suspense fallback={
           <div style={{ background: '#04020D', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

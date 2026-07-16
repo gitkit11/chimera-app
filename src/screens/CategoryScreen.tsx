@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence, useMotionValue, useTransform, animate as animateMV } from 'framer-motion'
 import { useFunnel } from '../store/funnel'
 import { haptic } from '../haptic'
-import { persistGetLocal, persistSet } from '../persist'
+import { persistSet } from '../persist'
 import footballIcon   from '../assets/icons/football.svg'
 import basketballIcon from '../assets/icons/basketball.svg'
 import tennisIcon     from '../assets/icons/tennis.svg'
@@ -28,7 +28,7 @@ import football2Bg from '../assets/bg/football2.jpg'
 import basketballBg from '../assets/bg/basketball.jpg'
 import tennisBg    from '../assets/bg/tennis.jpg'
 import esportsBg   from '../assets/bg/esports.jpg'
-import { api, type ApiSignal, type ApiExpress, type ApiFavorite } from '../api'
+import { api, type ApiSignal, type ApiExpress, type ApiFavorite, type FunnelSignal } from '../api'
 
 const M = motion as any
 const f    = "'Clash Display','Unbounded',sans-serif"
@@ -226,6 +226,40 @@ function mapSignal(s: ApiSignal, cardType: 'signal' | 'total' | 'week'): Card {
     altBet: { rec: '—', odds: '—', ev: '—', note: 'Нет альт. ставки' },
     isBanker: !!s.isBanker,
     minOdds: s.minOdds ?? null,
+  }
+}
+
+// Бесплатная ставка воронки → карточка «Сигналов». Показываем ИМЕННО тот матч,
+// что юзер взял (пока он не сыгран). mapSignal тут не годится: у FunnelSignal
+// другие имена полей (team1/prediction/matchTime).
+function mapFunnelToCard(s: FunnelSignal): Card {
+  const color = SPORT_COLOR[s.sport] ?? '#A78BFA'
+  const conf  = Math.round(s.confidence || 0)
+  const dt    = new Date(s.matchTime)
+  const ok    = !isNaN(dt.getTime())
+  return {
+    id: s.id ? `funnelfree-${s.id}` : 'funnelfree', cardType: 'signal', sport: s.sport, h2h: null,
+    tag: s.league, home: s.team1, away: s.team2,
+    rec: s.prediction, odds: String(s.odds),
+    ev: '—', score: conf, rarity: 'legend',
+    time: ok ? dt.toLocaleTimeString('ru', { hour:'2-digit', minute:'2-digit' }) : '—',
+    date: ok ? dt.toLocaleDateString('ru', { day:'numeric', month:'short' }) : '—',
+    bg: SPORT_BG[s.sport] ?? footballBg,
+    homeLogo: s.homeLogo ?? null, awayLogo: s.awayLogo ?? null,
+    probs: [
+      { label: s.prediction, pct: conf, color },
+      { label: 'Против', pct: 100 - conf, color: '#475569' },
+    ],
+    stats: [
+      { l: 'Уверенность', v: `${conf}%`, hi: true },
+      { l: 'Кэф', v: String(s.odds) },
+      { l: 'Лига', v: s.league || '—' },
+    ],
+    lineMove: { open: String(s.odds), curr: String(s.odds), delta: '0.00', dir: 'down', note: 'Линия стабильна' },
+    agentTexts: ['—', '—', '—'], shadow: '—',
+    altBet: { rec: '—', odds: '—', ev: '—', note: 'Нет альт. ставки' },
+    isBanker: !!s.isBanker,
+    minOdds: null,
   }
 }
 
@@ -540,7 +574,6 @@ export default function CategoryScreen() {
   const favorites          = useFunnel(s=>s.favorites)
   const addFavorite        = useFunnel(s=>s.addFavorite)
   const removeFavorite     = useFunnel(s=>s.removeFavorite)
-  const funnelSignalIdx    = useFunnel(s=>s.funnelSignalIdx)
   const expandedCardIds    = useFunnel(s=>s.expandedCardIds)
   const expandCard         = useFunnel(s=>s.expandCard)
   const viewedCardIds      = useFunnel(s=>s.viewedCardIds)
@@ -552,24 +585,30 @@ export default function CategoryScreen() {
   // мгновенно, без мелькания «Нет сигналов» на перемонтировании.
   const [liveCards, setLiveCards] = useState<Record<string, Card[]> | null>(_cardsCache)
   const [serverFavs, setServerFavs] = useState<Card[]>(_favsCache ?? [])
-  // Бесплатная ставка воронки уже использована? Тогда в меню «Сигналы» у non-PRO
-  // НЕ показываем открытую «бесплатную» карточку — всё под замком. used хранится
-  // на СЕРВЕРЕ (переживает полное закрытие аппа, в отличие от funnelSignalIdx,
-  // который сбрасывался → в меню всплывала «новая бесплатная»).
-  // _fu: '1' использована, '0' проверено и не использована, null ещё не знаем.
-  // Инициализируем СИНХРОННО из кэша → нет мелькания «показал карточку и спрятал»
-  // (раньше freeUsed стартовал false → карточка мигала до ответа сервера).
-  const _fu = persistGetLocal('chimera_free_used')
-  const [freeUsed, setFreeUsed]       = useState(_fu === '1')
-  const [freeChecked, setFreeChecked] = useState(_fu !== null)
+  // Бесплатная ставка воронки. В меню «Сигналы» у non-PRO показываем ИМЕННО тот
+  // матч, что юзер взял — пока он не сыгран. Как только пришёл результат
+  // (used && result) — карточку прячем, «Сигналы» становятся пустыми (всё под
+  // замком до PRO). Держим ВЕСЬ объект (не только флаг): нужно нарисовать сам
+  // матч, даже если его нет в общем фиде botSignals. Кэшируем в localStorage →
+  // при переоткрытии рисуется мгновенно, без мелькания.
+  const LS_FSIG = 'chimera_funnel_sig'
+  const [funnelSig, setFunnelSig] = useState<FunnelSignal | null>(() => readJSON<FunnelSignal>(LS_FSIG))
   useEffect(() => {
     if (isPro) return
     api.funnelSignal().then(s => {
-      const used = !!(s && s.used)
-      setFreeUsed(used); setFreeChecked(true)
-      persistSet('chimera_free_used', used ? '1' : '0')
-    }).catch(() => setFreeChecked(true))
+      const has = !!(s && s.sport)
+      setFunnelSig(has ? s : null)
+      persistSet('chimera_free_used', (s && s.used) ? '1' : '0')
+      try {
+        if (has) localStorage.setItem(LS_FSIG, JSON.stringify(s))
+        else localStorage.removeItem(LS_FSIG)
+      } catch { /* ignore */ }
+    }).catch(() => { /* оставляем кэш */ })
   }, [isPro])
+  // Карточку фри-бета показываем, пока ставка НЕ сыграна (result пуст). Сыграла →
+  // прячем. Годится и для «ещё не брал» (used=false, result null) — тогда это
+  // просто доступная бесплатная ставка.
+  const freeSigShown = !isPro && !!funnelSig && !!funnelSig.sport && !funnelSig.result
 
   useEffect(() => {
     Promise.allSettled([
@@ -646,6 +685,13 @@ export default function CategoryScreen() {
       if (favorites.includes(k) && !seen.has(k)) { seen.add(k); local.push(c) }
     }
     cards = [...serverFavs, ...local]
+  } else if (screen === 'home-signals' && freeSigShown && funnelSig) {
+    // non-PRO: первой карточкой — взятый (или доступный) бесплатный сигнал.
+    // Остальной фид под замком. Дедупим, чтобы тот же матч не задвоился.
+    const base = CARDS['home-signals'] || []
+    const fc = mapFunnelToCard(funnelSig)
+    const dupK = `${fc.sport}:${fc.home}:${fc.away}`
+    cards = [fc, ...base.filter(c => `${c.sport}:${c.home}:${c.away}` !== dupK)]
   } else {
     cards = CARDS[screen] || []
   }
@@ -1246,12 +1292,10 @@ export default function CategoryScreen() {
         ) : (
           <div style={{ display:'flex',flexDirection:'column',gap:10 }}>
             {cards.map((c,i)=>{
-              // Пока используемость не определена (freeChecked=false) — держим
-              // ЗАКРЫТО (freeIdx=-1): лучше «замок → карточка появилась», чем
-              // «карточка мигнула и спряталась». freeUsed → всё закрыто навсегда.
-              const freeIdx = (screen === 'home-signals' && freeChecked && !freeUsed)
-                ? (funnelSignalIdx !== null ? funnelSignalIdx : 0)
-                : -1
+              // Бесплатный сигнал (если показываем) всегда инжектится ПЕРВОЙ
+              // карточкой (см. вычисление cards) → freeIdx=0. Сыграл/не показываем
+              // → -1, весь фид под замком до PRO.
+              const freeIdx = (screen === 'home-signals' && freeSigShown) ? 0 : -1
               const isFav      = favorites.includes(cardKey(c))
               const isWeek     = c.cardType==='week'
               const isExpress  = c.cardType==='express'
@@ -1381,13 +1425,15 @@ export default function CategoryScreen() {
                       boxShadow:`inset 0 0 0 1.5px ${SPORT_COLOR[c.sport]||'#A78BFA'}99,0 0 24px ${SPORT_COLOR[c.sport]||'#A78BFA'}18` }}/>
                   )}
 
-                  {/* Free badge: only the chosen free signal */}
+                  {/* Free badge: взятый фри-бет → «В ИГРЕ», ещё не взят → «БЕСПЛАТНО» */}
                   {!isPro && i===freeIdx && !isWeek && screen==='home-signals' && (
                     <div style={{ position:'absolute',top:8,left:10,zIndex:21,
                       padding:'3px 8px',borderRadius:8,
-                      background:'rgba(52,211,153,.18)',border:'1px solid rgba(52,211,153,.45)',
+                      background: funnelSig?.used ? 'rgba(234,179,8,.18)' : 'rgba(52,211,153,.18)',
+                      border: funnelSig?.used ? '1px solid rgba(234,179,8,.5)' : '1px solid rgba(52,211,153,.45)',
                       fontFamily:mono,fontSize:7,fontWeight:800,
-                      letterSpacing:'.18em',color:'#34D399' }}>БЕСПЛАТНО</div>
+                      letterSpacing:'.18em',color: funnelSig?.used ? '#EAB308' : '#34D399' }}>
+                      {funnelSig?.used ? '⏳ В ИГРЕ' : 'БЕСПЛАТНО'}</div>
                   )}
 
                   {/* 🏦 Банкер дня: пик с максимальной калиброванной вероятностью,

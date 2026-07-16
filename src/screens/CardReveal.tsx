@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { api } from '../api'
 import { useFunnel } from '../store/funnel'
 import OnboardHint from '../components/OnboardHint'
 import footballIcon   from '../assets/icons/football.svg'
@@ -38,19 +39,37 @@ const RARITY = {
 } as const
 type RarityKey = keyof typeof RARITY
 
-const CARDS = [
-  { sport: 'football',   tag: 'La Liga',      home: 'Real Madrid', away: 'Man City',  rec: 'П1',     odds: 1.85, ev: '+14%', win: true,  rarity: 'legend'  as RarityKey, date: `${YESTERDAY} · 21:00`, bg: 'https://images.unsplash.com/photo-1522778034537-20a2486be803?w=800&q=80' },
-  { sport: 'basketball', tag: 'NBA',           home: 'Lakers',      away: 'Warriors',  rec: 'П1',     odds: 2.10, ev: '+8%',  win: true,  rarity: 'epic'    as RarityKey, date: `${YESTERDAY} · 04:30`, bg: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800&q=80' },
-  { sport: 'tennis',     tag: 'ATP Finals',    home: 'Djokovic',    away: 'Alcaraz',   rec: 'П1',     odds: 1.55, ev: '+6%',  win: true,  rarity: 'rare'    as RarityKey, date: `${YESTERDAY} · 18:30`, bg: 'https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=800&q=80' },
-  { sport: 'cs2',        tag: 'CS2 Major',     home: 'FaZe',        away: 'NAVI',      rec: 'П1',     odds: 1.92, ev: '+5%',  win: false, rarity: 'rare'    as RarityKey, date: `${YESTERDAY} · 17:00`, bg: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=80' },
-  { sport: 'hockey',     tag: 'NHL Playoffs',  home: 'Colorado',    away: 'Edmonton',  rec: 'ТМ 5.5', odds: 1.88, ev: '+15%', win: true,  rarity: 'chimera' as RarityKey, date: `${YESTERDAY} · 03:00`, bg: 'https://images.unsplash.com/photo-1515703407324-5f753afd8be8?w=800&q=80' },
+// Фон карточки по виду спорта (реальные карточки из базы не несут картинку —
+// подбираем по спорту, чтобы не было теннисного матча на футбольном стадионе)
+const SPORT_BG: Record<string, string> = {
+  football:   'https://images.unsplash.com/photo-1522778034537-20a2486be803?w=800&q=80',
+  basketball: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800&q=80',
+  tennis:     'https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=800&q=80',
+  cs2:        'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=80',
+  hockey:     'https://images.unsplash.com/photo-1515703407324-5f753afd8be8?w=800&q=80',
+}
+
+interface Card {
+  sport: string; tag: string; home: string; away: string
+  rec: string; odds: number; ev: string; win: boolean
+  rarity: RarityKey; date: string; bg: string; score?: string | null
+}
+
+// Фолбэк на случай пустой базы/ошибки сети — экран НЕ должен ломаться.
+// В норме заменяется реальными вчерашними ставками из /api/funnel-history.
+const FALLBACK_CARDS: Card[] = [
+  { sport: 'football',   tag: 'La Liga',      home: 'Real Madrid', away: 'Man City',  rec: 'П1',     odds: 1.85, ev: '+14%', win: true,  rarity: 'legend'  as RarityKey, date: `${YESTERDAY} · 21:00`, bg: SPORT_BG.football },
+  { sport: 'basketball', tag: 'NBA',           home: 'Lakers',      away: 'Warriors',  rec: 'П1',     odds: 2.10, ev: '+8%',  win: true,  rarity: 'epic'    as RarityKey, date: `${YESTERDAY} · 04:30`, bg: SPORT_BG.basketball },
+  { sport: 'tennis',     tag: 'ATP Finals',    home: 'Djokovic',    away: 'Alcaraz',   rec: 'П1',     odds: 1.55, ev: '+6%',  win: true,  rarity: 'rare'    as RarityKey, date: `${YESTERDAY} · 18:30`, bg: SPORT_BG.tennis },
+  { sport: 'cs2',        tag: 'CS2 Major',     home: 'FaZe',        away: 'NAVI',      rec: 'П1',     odds: 1.92, ev: '+5%',  win: false, rarity: 'rare'    as RarityKey, date: `${YESTERDAY} · 17:00`, bg: SPORT_BG.cs2 },
+  { sport: 'hockey',     tag: 'NHL Playoffs',  home: 'Colorado',    away: 'Edmonton',  rec: 'ТМ 5.5', odds: 1.88, ev: '+15%', win: true,  rarity: 'chimera' as RarityKey, date: `${YESTERDAY} · 03:00`, bg: SPORT_BG.hockey },
 ]
 
-function ProfitBanner({ profit, stake }: { profit: number, stake: number }) {
+function ProfitBanner({ profit, stake, cards }: { profit: number, stake: number, cards: Card[] }) {
   const [count, setCount] = useState(0)
   const target = Math.round(Math.abs(profit))
   const roi = Math.round((profit / stake) * 100)
-  const wins = CARDS.filter(c => c.win).length
+  const wins = cards.filter(c => c.win).length
 
   useEffect(() => {
     let cur = 0
@@ -99,7 +118,7 @@ function ProfitBanner({ profit, stake }: { profit: number, stake: number }) {
               transform: 'translate(-50%,-50%)', width: '76%', height: '76%', objectFit: 'contain' }} />
           </div>
           <div style={{ fontFamily: mono, fontSize: 9, letterSpacing: '.22em', textTransform: 'uppercase' as const, color: 'rgba(255,255,255,.32)', flex: 1 }}>
-            Chimera AI · {YESTERDAY} · {CARDS.length} сигналов
+            Chimera AI · {YESTERDAY} · {cards.length} сигналов
           </div>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 20, flexShrink: 0,
@@ -110,7 +129,7 @@ function ProfitBanner({ profit, stake }: { profit: number, stake: number }) {
             </span>
             <span style={{ width: 1, height: 10, background: 'rgba(255,255,255,.15)' }} />
             <span style={{ fontFamily: mono, fontSize: 9, fontWeight: 700, color: 'rgba(239,68,68,.8)', letterSpacing: '.12em' }}>
-              {CARDS.length - wins}L
+              {cards.length - wins}L
             </span>
           </div>
         </M.div>
@@ -148,7 +167,7 @@ function ProfitBanner({ profit, stake }: { profit: number, stake: number }) {
           style={{ display: 'flex' }}>
           {[
             { v: `+${roi}%`, l: 'ROI', c: '#10B981' },
-            { v: `${Math.round(wins/CARDS.length*100)}%`, l: 'Точность', c: '#FAFAF8' },
+            { v: `${Math.round(wins/Math.max(1,cards.length)*100)}%`, l: 'Точность', c: '#FAFAF8' },
             { v: `€${stake}`, l: 'Банк', c: 'rgba(255,255,255,.5)' },
           ].map(({ v, l, c }, i) => (
             <div key={i} style={{
@@ -165,7 +184,7 @@ function ProfitBanner({ profit, stake }: { profit: number, stake: number }) {
         {/* Signal result bars */}
         <M.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: .42 }}
           style={{ display: 'flex', gap: 6, marginTop: 14 }}>
-          {CARDS.map((c, i) => (
+          {cards.map((c, i) => (
             <M.div key={i}
               initial={{ scaleX: 0 }} animate={{ scaleX: 1 }}
               transition={{ delay: .42 + i * .07, duration: .4, ease: 'easeOut' }}
@@ -191,14 +210,31 @@ function ProfitBanner({ profit, stake }: { profit: number, stake: number }) {
 
 export default function CardReveal() {
   const { go, stake } = useFunnel()
-  const [revealed, setRevealed] = useState<boolean[]>([false, false, false, false, false])
+  // Реальные вчерашние ставки из базы (фолбэк — муляж, чтобы экран не пустовал)
+  const [cards, setCards] = useState<Card[]>(FALLBACK_CARDS)
+  const [revealed, setRevealed] = useState<boolean[]>(() => FALLBACK_CARDS.map(() => false))
   const [showBanner, setShowBanner] = useState(false)
 
-  const revealedCount = revealed.filter(Boolean).length
-  const allOpen = revealedCount === 5
-  const betSize = Math.round(stake / 5)
+  useEffect(() => {
+    api.funnelHistory().then(res => {
+      if (res?.cards?.length) {
+        const real: Card[] = res.cards.map(c => ({
+          sport: c.sport, tag: c.tag, home: c.home, away: c.away,
+          rec: c.rec, odds: c.odds, ev: c.ev, win: c.win,
+          rarity: (c.rarity as RarityKey) in RARITY ? (c.rarity as RarityKey) : 'rare',
+          date: c.date, bg: SPORT_BG[c.sport] ?? SPORT_BG.football, score: c.score,
+        }))
+        setCards(real)
+        setRevealed(real.map(() => false))
+      }
+    }).catch(() => { /* оставляем фолбэк */ })
+  }, [])
 
-  const profit = CARDS.reduce((sum, c, i) =>
+  const revealedCount = revealed.filter(Boolean).length
+  const allOpen = revealedCount === cards.length
+  const betSize = Math.round(stake / Math.max(1, cards.length))
+
+  const profit = cards.reduce((sum, c, i) =>
     revealed[i] ? sum + (c.win ? betSize * (c.odds - 1) : -betSize) : sum, 0)
 
   const openCard = (i: number) => {
@@ -250,7 +286,7 @@ export default function CardReveal() {
         transition: 'opacity .8s ease',
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {CARDS.map((c, i) => {
+          {cards.map((c, i) => {
             const isRevealed = revealed[i]
             return (
               <M.div key={i}
@@ -346,6 +382,10 @@ export default function CardReveal() {
                           <span style={{ fontFamily: mono, fontSize: 8, fontWeight: 600, letterSpacing: '.18em', textTransform: 'uppercase' as const, color: 'rgba(255,255,255,.38)' }}>{c.tag}</span>
                           <span style={{ fontFamily: mono, fontSize: 8, color: 'rgba(255,255,255,.2)' }}>·</span>
                           <span style={{ fontFamily: mono, fontSize: 8, color: 'rgba(255,255,255,.28)' }}>{c.date}</span>
+                          {c.score && <>
+                            <span style={{ fontFamily: mono, fontSize: 8, color: 'rgba(255,255,255,.2)' }}>·</span>
+                            <span style={{ fontFamily: mono, fontSize: 8.5, fontWeight: 700, color: c.win ? 'rgba(126,200,142,.9)' : 'rgba(224,92,92,.85)' }}>{c.score}</span>
+                          </>}
                         </div>
                         <div style={{ fontFamily: f, fontWeight: 700, fontSize: 14, lineHeight: 1.15, marginBottom: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {c.home} <span style={{ color: 'rgba(255,255,255,.28)', fontWeight: 400 }}>vs</span> {c.away}
@@ -407,7 +447,7 @@ export default function CardReveal() {
       {/* Bottom */}
       <div className="flex-shrink-0 px-5 pt-3" style={{ paddingBottom: 'max(24px, calc(env(safe-area-inset-bottom, 0px) + 16px))' }}>
         <AnimatePresence mode="wait">
-          {showBanner && <ProfitBanner profit={profit} stake={stake} />}
+          {showBanner && <ProfitBanner profit={profit} stake={stake} cards={cards} />}
         </AnimatePresence>
 
         {showBanner ? (
@@ -480,7 +520,7 @@ export default function CardReveal() {
                 Считаем результат…
               </>
             ) : (
-              `Открой ещё ${5 - revealedCount} ${5 - revealedCount === 1 ? 'карточку' : 'карточки'} ↑`
+              `Открой ещё ${cards.length - revealedCount} ${cards.length - revealedCount === 1 ? 'карточку' : 'карточки'} ↑`
             )}
           </M.div>
         )}
