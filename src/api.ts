@@ -158,6 +158,9 @@ export const api = {
   funnelSignal: () => getLive<FunnelSignal>('/api/funnel-signal'),
   funnelPick: (sport: string, home: string, away: string, candidateId?: number | null) =>
     post<{ ok: boolean }>('/api/funnel-pick', { sport, home, away, candidate_id: candidateId ?? null }),
+  // Заявка StawkiBet: юзер прислал ID счёта БК → уходит админу с кнопками принять/отклонить
+  stawkiRequest: (bkId: string, deposit: boolean) =>
+    post<{ ok: boolean; error?: string }>('/api/stawki-request', { bk_id: bkId, deposit }),
   // Аналитика: «юзер дошёл до экрана X» — глубина воронки в админке (/users).
   // Fire-and-forget, ошибки глотаем — на UX не влияет.
   track: (screen: string) =>

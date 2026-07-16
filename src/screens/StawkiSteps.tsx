@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useFunnel } from '../store/funnel'
 import { haptic } from '../haptic'
+import { api } from '../api'
 import stawkiLogo from '../assets/stawkibet.svg'
 
 const M  = motion as any
@@ -429,6 +430,17 @@ export default function StawkiSteps() {
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [bkId, setBkId] = useState('')
   const [depositDone, setDepositDone] = useState(false)
+  const [sending, setSending] = useState(false)
+
+  // Отправляем заявку на бэк (номер БК уходит админу с кнопками принять/отклонить),
+  // затем показываем экран «принято». Ошибка сети не блокирует — заявка ушла POST'ом.
+  const submitRequest = async () => {
+    if (sending) return
+    setSending(true)
+    try { await api.stawkiRequest(bkId, depositDone) } catch { /* ignore */ }
+    setSending(false)
+    setStep(3)
+  }
 
   return (
     <M.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -473,7 +485,7 @@ export default function StawkiSteps() {
           {step === 2 && (
             <Step2 bkId={bkId} setBkId={setBkId}
               depositDone={depositDone} setDepositDone={setDepositDone}
-              onSubmit={() => setStep(3)} />
+              onSubmit={submitRequest} />
           )}
           {step === 3 && <Step3 onHome={() => go('home')} />}
         </MA>
