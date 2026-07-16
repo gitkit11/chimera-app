@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useFunnel } from '../store/funnel'
 import { haptic } from '../haptic'
 import { api } from '../api'
+import { persistSet, persistGetLocal, persistLoadCloud } from '../persist'
 import logoIcon from '../assets/icon_dark2.png'
 
 const M  = motion as any
@@ -23,6 +24,34 @@ function now() {
   return new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })
 }
 
+// ─── Персист истории диалога (переживает уход с экрана и закрытие аппа) ───────
+const CHAT_KEY = 'chimera_support_chat'
+
+function loadMsgs(): Msg[] {
+  try {
+    const raw = persistGetLocal(CHAT_KEY)
+    if (raw) {
+      const arr = JSON.parse(raw)
+      if (Array.isArray(arr) && arr.length) return arr as Msg[]
+    }
+  } catch { /* ignore */ }
+  return [WELCOME]
+}
+
+// CloudStorage лимит ~4096 символов на значение → держим последние сообщения,
+// сбрасывая самые старые, пока сериализованный диалог не влезет.
+function saveMsgs(msgs: Msg[]) {
+  try {
+    let arr = msgs.slice(-40)
+    let s = JSON.stringify(arr)
+    while (s.length > 3900 && arr.length > 1) {
+      arr = arr.slice(1)
+      s = JSON.stringify(arr)
+    }
+    persistSet(CHAT_KEY, s)
+  } catch { /* ignore */ }
+}
+
 function TypingDots() {
   return (
     <div style={{ display: 'flex', gap: 4, alignItems: 'center', padding: '4px 2px' }}>
@@ -38,7 +67,7 @@ function TypingDots() {
 
 export default function SupportChat() {
   const go = useFunnel(s => s.go)
-  const [msgs, setMsgs] = useState<Msg[]>([WELCOME])
+  const [msgs, setMsgs] = useState<Msg[]>(loadMsgs)
   const [input, setInput] = useState('')
   const [typing, setTyping] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -46,6 +75,25 @@ export default function SupportChat() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [msgs, typing])
+
+  // Сохраняем историю при каждом изменении (localStorage мгновенно + CloudStorage)
+  useEffect(() => { saveMsgs(msgs) }, [msgs])
+
+  // Догрузка из CloudStorage после ПОЛНОГО закрытия аппа (Telegram чистит
+  // localStorage). Восстанавливаем только если локально пусто (один WELCOME),
+  // чтобы не затирать активную сессию.
+  useEffect(() => {
+    persistLoadCloud([CHAT_KEY], (data) => {
+      const raw = data[CHAT_KEY]
+      if (!raw) return
+      try {
+        const arr = JSON.parse(raw)
+        if (Array.isArray(arr) && arr.length) {
+          setMsgs(prev => (prev.length <= 1 ? (arr as Msg[]) : prev))
+        }
+      } catch { /* ignore */ }
+    })
+  }, [])
 
   const send = async () => {
     const text = input.trim()
@@ -69,6 +117,8 @@ export default function SupportChat() {
       setTyping(false)
     }
   }
+
+  const clearChat = () => { haptic('light'); setMsgs([{ ...WELCOME, ts: now() }]) }
 
   return (
     <M.div initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }}
@@ -122,11 +172,21 @@ export default function SupportChat() {
             letterSpacing: '.1em', marginTop: 3 }}>AI АССИСТЕНТ · ОНЛАЙН</div>
         </div>
 
-        <div style={{ fontFamily: mono, fontSize: 7, fontWeight: 700, letterSpacing: '.12em',
-          color: '#A78BFA', background: 'rgba(139,92,246,.15)',
-          border: '1px solid rgba(167,139,250,.25)', padding: '3px 8px', borderRadius: 20 }}>
-          AI
-        </div>
+        {msgs.length > 1 ? (
+          <M.button whileTap={{ scale: .9 }} onClick={clearChat}
+            style={{ fontFamily: mono, fontSize: 7, fontWeight: 700, letterSpacing: '.1em',
+              color: 'rgba(255,255,255,.42)', background: 'rgba(255,255,255,.05)',
+              border: '1px solid rgba(255,255,255,.1)', padding: '4px 9px', borderRadius: 20,
+              cursor: 'pointer' }}>
+            ОЧИСТИТЬ
+          </M.button>
+        ) : (
+          <div style={{ fontFamily: mono, fontSize: 7, fontWeight: 700, letterSpacing: '.12em',
+            color: '#A78BFA', background: 'rgba(139,92,246,.15)',
+            border: '1px solid rgba(167,139,250,.25)', padding: '3px 8px', borderRadius: 20 }}>
+            AI
+          </div>
+        )}
       </div>
 
       {/* Messages */}
