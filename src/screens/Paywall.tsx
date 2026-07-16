@@ -92,8 +92,12 @@ export default function Paywall() {
         background: 'radial-gradient(ellipse,rgba(109,40,217,.09) 0%,transparent 68%)',
         filter: 'blur(14px)' }} />
 
-      {/* ── SCROLL ZONE: Header + PRO card + Stawki ── */}
-      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', scrollbarWidth: 'none' as const,
+      {/* ── SCROLL ZONE: Header + PRO card + Stawki ──
+           flex:'0 1 auto' (НЕ 1): зона занимает высоту КОНТЕНТА и может ужаться
+           со скроллом на низких экранах, но НЕ раздувается на всю высоту. Иначе
+           между Stawki-картой и панелью агентов зияла мёртвая пустота (тот самый
+           отступ). Освободившийся низ теперь забирает «живая» панель агентов. */}
+      <div style={{ flex: '0 1 auto', minHeight: 0, overflowY: 'auto', scrollbarWidth: 'none' as const,
         position: 'relative', zIndex: 1,
         padding: 'var(--header-top) 18px 20px' }}>
 
@@ -234,13 +238,33 @@ export default function Paywall() {
 
       </div>
 
-      {/* ── Trust ticker (vertical) ── */}
-      <div style={{ flexShrink: 0, height: 90, overflow: 'hidden',
-        borderTop: '1px solid rgba(255,255,255,.05)',
-        borderBottom: '1px solid rgba(255,255,255,.05)', position: 'relative', zIndex: 1 }}>
-        <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 26, zIndex: 2, pointerEvents: 'none',
+      {/* ── Live agents panel — растёт и заполняет свободный низ (нет мёртвого
+           отступа), оформлена как «живой» блок: заголовок + пульс-точка + LIVE ── */}
+      <div style={{ flex: '1 1 auto', minHeight: 112, display: 'flex', flexDirection: 'column' as const,
+        borderTop: '1px solid rgba(255,255,255,.06)', position: 'relative', zIndex: 1,
+        background: 'linear-gradient(180deg,rgba(124,58,237,.055),transparent 62%)' }}>
+        {/* Заголовок панели */}
+        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8,
+          padding: '10px 16px 7px' }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#34D399',
+            boxShadow: '0 0 8px rgba(52,211,153,.9)', flexShrink: 0,
+            animation: 'pw-pulse 1.6s ease-in-out infinite' }} />
+          <span style={{ fontFamily: mono, fontSize: 8.5, fontWeight: 700, letterSpacing: '.14em',
+            textTransform: 'uppercase' as const, color: 'rgba(255,255,255,.44)' }}>
+            Агенты работают сейчас
+          </span>
+          <span style={{ flex: 1 }} />
+          <span style={{ fontFamily: mono, fontSize: 8, fontWeight: 800, letterSpacing: '.1em',
+            color: 'rgba(52,211,153,.72)', background: 'rgba(52,211,153,.08)',
+            border: '1px solid rgba(52,211,153,.2)', padding: '2px 7px', borderRadius: 5 }}>
+            LIVE
+          </span>
+        </div>
+        {/* Прокручиваемое окно трансляции */}
+        <div style={{ flex: '1 1 auto', minHeight: 0, overflow: 'hidden', position: 'relative' }}>
+        <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 22, zIndex: 2, pointerEvents: 'none',
           background: 'linear-gradient(180deg,#04020D,transparent)' }} />
-        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 26, zIndex: 2, pointerEvents: 'none',
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 22, zIndex: 2, pointerEvents: 'none',
           background: 'linear-gradient(0deg,#04020D,transparent)' }} />
         <div ref={tickerRef} style={{ display: 'flex', flexDirection: 'column' as const,
           willChange: 'transform' }}>
@@ -311,6 +335,7 @@ export default function Paywall() {
               ))}
             </div>
           ))}
+        </div>
         </div>
       </div>
 

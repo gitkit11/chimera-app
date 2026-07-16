@@ -72,3 +72,4 @@ body {
 @keyframes pw-spin    { to { transform: translate(-50%,-50%) rotate(360deg) } }
 @keyframes pw-shim    { 0%,40%{transform:translateX(-100%)} 60%,100%{transform:translateX(220%)} }
 @keyframes pw-vticker { from { transform: translateY(0) } to { transform: translateY(-1320px) } }
+@keyframes pw-pulse   { 0%,100%{ opacity:1; transform:scale(1) } 50%{ opacity:.35; transform:scale(.7) } }
