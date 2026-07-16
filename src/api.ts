@@ -156,8 +156,8 @@ export const api = {
   // Воронка: бесплатный сигнал 4-го экрана (банкер дня) + фиксация выбора
   // (бот пришлёт пуш с исходом бесплатной ставки)
   funnelSignal: () => getLive<FunnelSignal>('/api/funnel-signal'),
-  funnelPick: (sport: string, home: string, away: string) =>
-    post<{ ok: boolean }>('/api/funnel-pick', { sport, home, away }),
+  funnelPick: (sport: string, home: string, away: string, candidateId?: number | null) =>
+    post<{ ok: boolean }>('/api/funnel-pick', { sport, home, away, candidate_id: candidateId ?? null }),
   // Аналитика: «юзер дошёл до экрана X» — глубина воронки в админке (/users).
   // Fire-and-forget, ошибки глотаем — на UX не влияет.
   track: (screen: string) =>
@@ -165,9 +165,25 @@ export const api = {
   // ИИ-поддержка: вопрос юзера → ответ ИИ (знает проект, доступ, как работает)
   askSupport: (question: string) =>
     post<{ answer: string }>('/api/support', { question }),
+  // Экран 3 воронки: РЕАЛЬНЫЕ вчерашние рассчитанные ставки (не макет).
+  // Статика (быстро) → если пусто, живой сервер.
+  funnelHistory: () =>
+    getWithLiveFallback<{ cards: FunnelHistoryCard[] }>('/api/funnel-history',
+      v => !v || !v.cards || v.cards.length === 0),
+}
+
+export interface FunnelHistoryCard {
+  sport: string; tag: string
+  home: string; away: string
+  rec: string; odds: number; ev: string
+  win: boolean
+  rarity: 'rare' | 'epic' | 'legend' | 'chimera'
+  date: string          // «14 июл · 21:00»
+  score: string | null  // «2:1»
 }
 
 export interface FunnelSignal {
+  id?: number | null
   sport: string; team1: string; team2: string
   prediction: string; pick_team: string; odds: number
   confidence: number; matchTime: string; league: string; isBanker?: boolean

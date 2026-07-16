@@ -75,7 +75,16 @@ let _favsCache: Card[] | null = readJSON<Card[]>(LS_FAVS)
 // съезжает после обновления данных). По нему помечаем «открыто» — метка
 // держится за конкретным матчем и переживает перезапуск.
 function cardKey(c: Card): string {
-  return c.cardType === 'express' ? c.id : `${c.sport}:${c.home}:${c.away}`
+  return c.cardType === 'express' ? (c.legsHash || c.id) : `${c.sport}:${c.home}:${c.away}`
+}
+
+// «8 июл · 10:00» для матчей НЕ сегодняшнего дня, иначе просто «10:00».
+// Без даты завтрашние матчи выглядят сегодняшними — юзер ждёт результат,
+// которого ещё не может быть.
+function dateTimeLabel(c: Card): string {
+  if (!c.date || c.date === '—' || !c.time || c.time === '—') return c.time
+  const today = new Date().toLocaleDateString('ru', { day: 'numeric', month: 'short' })
+  return c.date === today ? c.time : `${c.date} · ${c.time}`
 }
 
 // Кастомные золотые иконки вместо системных эмодзи 🏦 / 👑
@@ -115,7 +124,18 @@ function CrownIcon({ size = 16 }: { size?: number }) {
   )
 }
 
-type ExpressLeg = { sport: string; match: string; pick: string; odds: string; conf: number; color: string }
+type ExpressLeg = { sport: string; match: string; pick: string; odds: string; conf: number; color: string; when?: string }
+
+// «8 июл · 12:00» (сегодняшние — просто «12:00») для ноги экспресса
+function legWhen(mt?: string): string {
+  if (!mt) return ''
+  const dt = new Date(mt)
+  if (isNaN(dt.getTime())) return ''
+  const today = new Date().toLocaleDateString('ru', { day: 'numeric', month: 'short' })
+  const d = dt.toLocaleDateString('ru', { day: 'numeric', month: 'short' })
+  const t = dt.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })
+  return d === today ? t : `${d} · ${t}`
+}
 
 type Card = {
   id: string; cardType: 'signal' | 'express' | 'total' | 'week'
@@ -132,6 +152,10 @@ type Card = {
   btts?: number
   isBanker?: boolean        // 🏦 банкер дня (максимум один)
   minOdds?: number | null   // минимальный кэф своей БК для ставки
+  legsHash?: string         // экспресс: стабильный ключ для избранного
+  expressLegsRaw?: ApiExpress['legs']  // сырые ноги для повторной отправки на сервер
+  expressLabel?: string     // «Надёжный ×2» и т.п.
+  h2h?: ApiSignal['h2h']    // личные встречи пары
 }
 
 const SPORT_BG: Record<string, string> = {
@@ -149,7 +173,7 @@ function mapSignal(s: ApiSignal, cardType: 'signal' | 'total' | 'week'): Card {
   const dt    = new Date(s.matchTime)
   const ok    = !isNaN(dt.getTime())
   return {
-    id: s.id, cardType, sport: s.sport,
+    id: s.id, cardType, sport: s.sport, h2h: s.h2h ?? null,
     tag: s.league, home: s.team1, away: s.team2,
     rec: s.prediction,
     odds: String(s.odds),
@@ -207,6 +231,36 @@ function mapSignal(s: ApiSignal, cardType: 'signal' | 'total' | 'week'): Card {
 // Серверное избранное → карточка списка. У рассчитанных матчей вместо лиги —
 // бейдж исхода: «✅ ЗАШЛО · 112:98» (висит 12 часов после результата)
 function mapFavorite(fv: ApiFavorite, i: number): Card {
+  // Избранный экспресс: несколько ног + общий исход (win/lose из express_log)
+  if (fv.type === 'express' && fv.legs) {
+    const bgByLegs: Record<number, string> = { 2: speed210Bg, 3: speed280Bg, 4: speed340Bg }
+    const n = fv.legs.length
+    const xtag = fv.result
+      ? (fv.result === 'win' ? '✅ ЭКСПРЕСС ЗАШЁЛ' : '❌ ЭКСПРЕСС НЕ ЗАШЁЛ')
+      : `Экспресс ×${n}`
+    const odds = Number(fv.totalOdds ?? 0).toFixed(2)
+    const xlegTimes = fv.legs.map(l => l.matchTime).filter(Boolean) as string[]
+    const xearliest = xlegTimes.sort()[0]
+    return {
+      id: `srvfav-x-${i}`, cardType: 'express', sport: 'mixed',
+      legsHash: fv.legsHash, expressLegsRaw: fv.legs, expressLabel: fv.label,
+      tag: xtag, home: fv.legs.map(l => l.team1).join(' + '), away: '',
+      rec: `×${odds}`, odds, ev: '—', score: 0, rarity: 'rare',
+      time: xearliest ? legWhen(xearliest) : '—', date: '—', bg: bgByLegs[n] ?? speed280Bg,
+      homeLogo: null, awayLogo: null,
+      legs: fv.legs.map(l => ({
+        sport: l.sport, match: `${l.team1} vs ${l.team2}`,
+        pick: l.prediction, odds: String(l.odds), conf: 70, color: l.color,
+        when: legWhen(l.matchTime),
+      })),
+      hitPct: 0, maxBet: '3%', correlation: 'средняя',
+      probs: [],
+      stats: [{ l: 'Кэф', v: `×${odds}`, hi: true }],
+      lineMove: { open: '—', curr: '—', delta: '0', dir: 'down', note: '' },
+      agentTexts: ['—', '—', '—'], shadow: '—',
+      altBet: { rec: '—', odds: '—', ev: '—', note: fv.label ?? '—' },
+    }
+  }
   const tag = fv.result
     ? (fv.result === 'win' ? `✅ ЗАШЛО${fv.score ? ' · ' + fv.score : ''}`
                            : `❌ НЕ ЗАШЛО${fv.score ? ' · ' + fv.score : ''}`)
@@ -231,15 +285,19 @@ function mapFavorite(fv: ApiFavorite, i: number): Card {
 function mapExpress(e: ApiExpress): Card {
   const bgByLegs: Record<number, string> = { 2: speed210Bg, 3: speed280Bg, 4: speed340Bg }
   const conf = Math.round(e.confidence)
+  // Время экспресса в списке = старт самой ранней ноги (с датой, если не сегодня)
+  const legTimes = e.legs.map(l => l.matchTime).filter(Boolean) as string[]
+  const earliest = legTimes.sort()[0]
   return {
     id: e.id, cardType: 'express', sport: e.sport,
+    legsHash: e.legsHash, expressLegsRaw: e.legs, expressLabel: e.label,
     tag: `Экспресс ×${e.legs.length}`,
     home: e.legs.map(l => l.team1).join(' + '), away: '',
     rec: `×${Number(e.totalOdds).toFixed(2)}`,
     odds: String(Number(e.totalOdds).toFixed(2)),
     ev: '+??%', score: conf,
     rarity: RARITY_MAP[e.rarity] ?? 'rare',
-    time: '—', date: '—',
+    time: earliest ? legWhen(earliest) : '—', date: '—',
     bg: bgByLegs[e.legs.length] ?? speed280Bg,
     homeLogo: null, awayLogo: null,
     legs: e.legs.map(l => ({
@@ -248,6 +306,7 @@ function mapExpress(e: ApiExpress): Card {
       pick: l.prediction,
       odds: String(l.odds),
       conf: 70, color: l.color,
+      when: legWhen(l.matchTime),
     })),
     hitPct: conf, maxBet: '3%', correlation: 'средняя',
     probs: [
@@ -265,6 +324,41 @@ function mapExpress(e: ApiExpress): Card {
   }
 }
 
+// ── Личные встречи (H2H) в детальной карточке ────────────────────────────────
+function H2HBlock({ h2h, accent }: { h2h: NonNullable<ApiSignal['h2h']>; accent: string }) {
+  const [w, d, l] = h2h.record.split('-').map(Number)
+  return (
+    <div style={{ marginTop: 10, borderRadius: 12, overflow: 'hidden',
+      background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '9px 14px', borderBottom: '1px solid rgba(255,255,255,.05)' }}>
+        <span style={{ fontFamily: mono, fontSize: 9, letterSpacing: '.14em',
+          textTransform: 'uppercase' as const, color: `${accent}cc` }}>🤝 Личные встречи · {h2h.total}</span>
+        <span style={{ fontFamily: f, fontWeight: 800, fontSize: 12 }}>
+          <span style={{ color: '#34D399' }}>{w}</span>
+          <span style={{ color: 'rgba(255,255,255,.35)' }}> – {d} – </span>
+          <span style={{ color: '#F87171' }}>{l}</span>
+        </span>
+      </div>
+      {h2h.matches.map((m, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 14px',
+          borderBottom: i < h2h.matches.length - 1 ? '1px solid rgba(255,255,255,.04)' : 'none' }}>
+          <span style={{ fontFamily: mono, fontSize: 8.5, color: 'rgba(255,255,255,.3)', flexShrink: 0, width: 56 }}>{m.date?.slice(5).split('-').reverse().join('.')}</span>
+          <span style={{ fontFamily: mono, fontSize: 9.5, color: 'rgba(255,255,255,.6)', flex: 1,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
+            {m.home} <b style={{ color: '#F5F3FF' }}>{m.score}</b> {m.away}
+          </span>
+        </div>
+      ))}
+      {h2h.avgTotal ? (
+        <div style={{ padding: '7px 14px', fontFamily: mono, fontSize: 8.5, color: 'rgba(255,255,255,.35)' }}>
+          Средний тотал пары: <b style={{ color: '#6EE7B7' }}>{h2h.avgTotal}</b>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 const CATEGORY_META: Record<string, { label: string; icon: string; color: string }> = {
   'home-signals':   { label: 'Сигналы',        icon: signalsMenuIcon, color: '#A78BFA' },
   'home-express':   { label: 'Экспресс',        icon: expressMenuIcon, color: '#F97316' },
@@ -275,14 +369,20 @@ const CATEGORY_META: Record<string, { label: string; icon: string; color: string
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function TeamLogo({ name, url, size = 44 }: { name: string; url: string | null; size?: number }) {
-  const initials = name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
+  // Если картинка лого не загрузилась (мёртвый URL / CORS / заблокирован
+  // ui-avatars) — падаем на инициалы, а не показываем пустой квадрат. Именно
+  // из-за отсутствия onError лого «где-то было, где-то нет».
+  const [failed, setFailed] = useState(false)
+  const initials = (name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
   const colors = ['#A78BFA','#06B6D4','#F97316','#10B981','#EAB308','#F472B6']
-  const bg = colors[name.charCodeAt(0) % colors.length]
+  const bg = colors[(name.charCodeAt(0) || 0) % colors.length]
+  const showImg = !!url && !failed
   return (
     <div style={{ width:size, height:size, borderRadius:size*.28, flexShrink:0, overflow:'hidden',
-      background:url?'transparent':`${bg}22`, border:`1.5px solid ${bg}44`,
+      background:showImg?'transparent':`${bg}22`, border:`1.5px solid ${bg}44`,
       display:'flex', alignItems:'center', justifyContent:'center' }}>
-      {url ? <img src={url} alt={name} style={{ width:'100%',height:'100%',objectFit:'contain' }}/>
+      {showImg ? <img src={url!} alt={name} onError={()=>setFailed(true)}
+                   style={{ width:'100%',height:'100%',objectFit:'contain' }}/>
            : <span style={{ fontFamily:f, fontWeight:900, fontSize:size*.38, color:bg }}>{initials}</span>}
     </div>
   )
@@ -451,6 +551,15 @@ export default function CategoryScreen() {
   // мгновенно, без мелькания «Нет сигналов» на перемонтировании.
   const [liveCards, setLiveCards] = useState<Record<string, Card[]> | null>(_cardsCache)
   const [serverFavs, setServerFavs] = useState<Card[]>(_favsCache ?? [])
+  // Бесплатная ставка воронки уже использована? Тогда в меню «Сигналы» у non-PRO
+  // НЕ показываем открытую «бесплатную» карточку — всё под замком. used хранится
+  // на СЕРВЕРЕ (переживает полное закрытие аппа, в отличие от funnelSignalIdx,
+  // который сбрасывался → в меню всплывала «новая бесплатная»).
+  const [freeUsed, setFreeUsed] = useState(false)
+  useEffect(() => {
+    if (isPro) return
+    api.funnelSignal().then(s => setFreeUsed(!!(s && s.used))).catch(() => {})
+  }, [isPro])
 
   useEffect(() => {
     Promise.allSettled([
@@ -486,16 +595,26 @@ export default function CategoryScreen() {
         const m = fs.map(mapFavorite); _favsCache = m
         try { localStorage.setItem(LS_FAVS, JSON.stringify(m)) } catch { /* ignore */ }
         setServerFavs(m)
-        // Синхронизируем локальные звёздочки с бэком (истина) по ключу матча.
-        // Оставляем и локально-добавленные ключи (ещё не долетевшие до сервера).
-        const serverKeys = fs.filter(f => f.team1 && f.team2)
-                             .map(f => `${f.sport}:${f.team1}:${f.team2}`)
-        useFunnel.setState(st => {
-          const localMatch = st.favorites.filter(k => k.includes(':'))
-          return { favorites: Array.from(new Set([...serverKeys, ...localMatch])) }
-        })
+        // Синхронизируем локальные звёздочки с бэком. Матч → ключ sport:home:away,
+        // экспресс → стабильный legsHash. Локальные ключи оставляем (ещё не
+        // долетевшие до сервера), чтобы звёздочка не гасла до round-trip.
+        const serverKeys = fs.map(f => f.type === 'express'
+          ? (f.legsHash || '')
+          : (f.team1 && f.team2 ? `${f.sport}:${f.team1}:${f.team2}` : '')
+        ).filter(Boolean)
+        useFunnel.setState(st => ({
+          favorites: Array.from(new Set([...serverKeys, ...st.favorites])),
+        }))
       })
       .catch(() => { /* оставляем кэш */ })
+  }, [screen])
+
+  // Сигналы/тоталы/неделя/избранное — ОДИН инстанс CategoryScreen (key="category").
+  // При смене вкладки сбрасываем открытую детальную карточку, иначе она мелькает
+  // «старым экраном» поверх новой вкладки на первом кадре.
+  useEffect(() => {
+    setOpenCard(null); setFlipped(false); setCardOpen(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen])
 
   const meta = CATEGORY_META[screen] || CATEGORY_META['home-signals']
@@ -510,7 +629,7 @@ export default function CategoryScreen() {
     // с сервера. Идентичность — КЛЮЧ МАТЧА (cardKey), а НЕ позиционный c.id:
     // иначе один sig_00N цепляет одноимённые карточки из всех категорий →
     // флуд и дубли React-ключей → краш/тёмный экран. Дедупим по ключу.
-    const seen = new Set(serverFavs.map(sf => `${sf.sport}:${sf.home}:${sf.away}`))
+    const seen = new Set(serverFavs.map(sf => cardKey(sf)))
     const local: Card[] = []
     for (const c of Object.values(CARDS).flat()) {
       const k = cardKey(c)
@@ -525,10 +644,15 @@ export default function CategoryScreen() {
     e?.stopPropagation()
     const k = cardKey(c)
     favorites.includes(k) ? removeFavorite(k) : addFavorite(k)
-    // Сервер: включает уведомление об исходе матча в Telegram-боте.
+    // Сервер: включает уведомление об исходе в Telegram-боте.
     // Fire-and-forget: локальный стор работает даже если API недоступен.
-    if (c.cardType !== 'express' && c.away)
+    if (c.cardType === 'express') {
+      if (c.legsHash)
+        api.toggleFavoriteExpress(c.legsHash, c.expressLabel ?? '',
+          Number(c.odds) || 0, c.expressLegsRaw ?? []).catch(() => {})
+    } else if (c.away) {
       api.toggleFavorite(c.sport, c.home, c.away).catch(() => {})
+    }
   }
   // Удаление из избранного (крестик на карточке во вкладке «Избранное»):
   // убираем и локальный, и серверный (в т.ч. уже прошедшие матчи, которые
@@ -536,13 +660,20 @@ export default function CategoryScreen() {
   const removeFav = (c: Card, e?: React.MouseEvent) => {
     e?.stopPropagation()
     haptic('medium')
-    removeFavorite(cardKey(c))
+    const k = cardKey(c)
+    removeFavorite(k)
     setServerFavs(prev => {
-      const next = prev.filter(sf => !(sf.home === c.home && sf.away === c.away))
+      const next = prev.filter(sf => cardKey(sf) !== k)
       _favsCache = next
       return next
     })
-    if (c.away) api.toggleFavorite(c.sport, c.home, c.away).catch(() => {})
+    if (c.cardType === 'express') {
+      if (c.legsHash)
+        api.toggleFavoriteExpress(c.legsHash, c.expressLabel ?? '',
+          Number(c.odds) || 0, c.expressLegsRaw ?? []).catch(() => {})
+    } else if (c.away) {
+      api.toggleFavorite(c.sport, c.home, c.away).catch(() => {})
+    }
   }
   const openDetail = (c: Card) => {
     markViewed(cardKey(c))
@@ -649,7 +780,9 @@ export default function CategoryScreen() {
                               border:`1px solid ${leg.color}33`,padding:4,boxSizing:'border-box' as const }}/>
                           <div style={{ flex:1,minWidth:0 }}>
                             <div style={{ fontFamily:mono,fontSize:8.5,color:'rgba(255,255,255,.4)',
-                              marginBottom:4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' as const }}>{leg.match}</div>
+                              marginBottom:4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' as const }}>
+                              {leg.match}{leg.when ? <span style={{ color:'#F97316' }}> · {leg.when}</span> : null}
+                            </div>
                             <div style={{ display:'flex',alignItems:'center',gap:8 }}>
                               <div style={{ padding:'2px 9px',borderRadius:5,
                                 background:`${leg.color}22`,border:`1px solid ${leg.color}44`,
@@ -777,6 +910,8 @@ export default function CategoryScreen() {
                       </div>
                     ))}
                   </div>
+                  {/* Личные встречи пары (для тотала важен ср. тотал) */}
+                  {c.h2h && <H2HBlock h2h={c.h2h} accent="#34D399"/>}
                 </>)}
 
                 {/* ── SIGNAL / WEEK FRONT ── */}
@@ -853,6 +988,8 @@ export default function CategoryScreen() {
                       )
                     })}
                   </div>
+                  {/* Личные встречи пары */}
+                  {c.h2h && <H2HBlock h2h={c.h2h} accent={accent}/>}
                 </>)}
 
               </div>
@@ -1099,7 +1236,8 @@ export default function CategoryScreen() {
         ) : (
           <div style={{ display:'flex',flexDirection:'column',gap:10 }}>
             {cards.map((c,i)=>{
-              const freeIdx = screen === 'home-signals'
+              // freeUsed → бесплатная воронки использована → в меню всё закрыто
+              const freeIdx = (screen === 'home-signals' && !freeUsed)
                 ? (funnelSignalIdx !== null ? funnelSignalIdx : 0)
                 : -1
               const isFav      = favorites.includes(cardKey(c))
@@ -1386,7 +1524,7 @@ export default function CategoryScreen() {
                         style={{ width:50,height:50,borderRadius:12,flexShrink:0,opacity:.85 }}/>
                       <div style={{ flex:1,minWidth:0 }}>
                         <div style={{ fontFamily:mono,fontSize:8,color:'rgba(255,255,255,.38)',letterSpacing:'.15em',marginBottom:4 }}>
-                          {c.tag} · {c.time}
+                          {c.tag} · {dateTimeLabel(c)}
                         </div>
                         <div style={{ fontFamily:f,fontWeight:700,fontSize:14,lineHeight:1.2,
                           whiteSpace:'nowrap' as const,overflow:'hidden',textOverflow:'ellipsis',marginBottom:4 }}>

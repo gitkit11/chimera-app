@@ -239,8 +239,11 @@ export default function Paywall() {
       </div>
 
       {/* ── Live agents panel — растёт и заполняет свободный низ (нет мёртвого
-           отступа), оформлена как «живой» блок: заголовок + пульс-точка + LIVE ── */}
-      <div style={{ flex: '1 1 auto', minHeight: 112, display: 'flex', flexDirection: 'column' as const,
+           отступа), оформлена как «живой» блок: заголовок + пульс-точка + LIVE.
+           flex-basis 0px (НЕ auto!): панель забирает только ОСТАТОК высоты после
+           карточек. С auto её базис = натуральная высота тикера (~4000px строк)
+           → она перетягивала дележ и ужимала PRO/«бесплатно» почти в ноль. */}
+      <div style={{ flex: '1 1 0px', minHeight: 108, display: 'flex', flexDirection: 'column' as const,
         borderTop: '1px solid rgba(255,255,255,.06)', position: 'relative', zIndex: 1,
         background: 'linear-gradient(180deg,rgba(124,58,237,.055),transparent 62%)' }}>
         {/* Заголовок панели */}

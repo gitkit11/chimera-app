@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { api, type ApiSignal, type FunnelSignal } from '../api'
 import { useFunnel } from '../store/funnel'
 import { haptic } from '../haptic'
+import { persistSet, persistGetLocal } from '../persist'
 import footballIcon   from '../assets/icons/football.svg'
 import basketballIcon from '../assets/icons/basketball.svg'
 import tennisIcon     from '../assets/icons/tennis.svg'
@@ -83,14 +84,19 @@ const AI_DATA = {
 
 // ── Team logo ─────────────────────────────────────────────────────────
 function TeamLogo({ name, url, size = 44 }: { name: string, url: string|null, size?: number }) {
-  const initials = name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
+  // onError → инициалы: без этого мёртвый/заблокированный URL лого давал
+  // пустой квадрат («где-то лого есть, где-то нет»).
+  const [failed, setFailed] = useState(false)
+  const initials = (name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
   const colors   = ['#A78BFA','#06B6D4','#F97316','#10B981','#EAB308','#F472B6']
-  const bg       = colors[name.charCodeAt(0) % colors.length]
+  const bg       = colors[(name.charCodeAt(0) || 0) % colors.length]
+  const showImg  = !!url && !failed
   return (
     <div style={{ width: size, height: size, borderRadius: size * .28, flexShrink: 0, overflow: 'hidden',
-      background: url ? 'transparent' : `${bg}22`, border: `1.5px solid ${bg}44`,
+      background: showImg ? 'transparent' : `${bg}22`, border: `1.5px solid ${bg}44`,
       display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      {url ? <img src={url} alt={name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+      {showImg ? <img src={url!} alt={name} onError={()=>setFailed(true)}
+                   style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
            : <span style={{ fontFamily: f, fontWeight: 900, fontSize: size * .38, color: bg }}>{initials}</span>}
     </div>
   )
@@ -193,15 +199,42 @@ export default function SignalCards() {
     }).catch(() => {})
   }, [])
 
+  // Бесплатная ставка УЖЕ взята (одна навсегда): при возврате на экран сразу
+  // помечаем ячейку выбранной — выбрать другую нельзя, сигнал не «теряется».
+  // Индекс = ТА ЖЕ ячейка, которую юзер выбрал (persist); фолбэк — хэш пары.
+  useEffect(() => {
+    if (!realSig?.used || chosen !== null) return
+    let idx: number | null = null
+    try {
+      const saved = persistGetLocal('chimera_free_cell')
+      if (saved !== null && !isNaN(parseInt(saved))) idx = parseInt(saved) % SIGNALS.length
+    } catch { /* ignore */ }
+    if (idx === null) {
+      const s = realSig.team1 + realSig.team2
+      let h = 0
+      for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0
+      idx = h % SIGNALS.length
+    }
+    setChosen(idx)
+    setFunnelSignalIdx(idx)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [realSig])
+
   const pick = (i: number) => {
     if (chosen !== null && chosen !== i) return
+    // Реальный сигнал ещё грузится → не открываем МУЛЯЖ (мелькал на пару
+    // секунд Real Madrid до подмены). Обычно грузится за долю секунды.
+    if (!realSig) { haptic('light'); return }
     setChosen(i)
     setExpanded(true)
     setFlipped(false)
     setFunnelSignalIdx(i)
-    // Сервер запоминает выбор: бот пришлёт пуш с исходом бесплатной ставки
-    if (realSig)
-      api.funnelPick(realSig.sport, realSig.team1, realSig.team2).catch(() => {})
+    // Запоминаем ВЫБРАННУЮ ячейку: при возврате открытой должна быть она же
+    // (раньше восстанавливалась по хэшу — брал 4-ю, показывало 1-ю)
+    try { persistSet('chimera_free_cell', String(i)) } catch { /* ignore */ }
+    // Сервер запоминает выбор по ТОЧНОМУ id кандидата (надёжно, без матча по
+    // именам) → бот пришлёт пуш с исходом бесплатной ставки
+    api.funnelPick(realSig.sport, realSig.team1, realSig.team2, realSig.id).catch(() => {})
     setTimeout(() => setShowExpHint(true), 1400)
   }
   const close = () => { setExpanded(false); setFlipped(false); setShowExpHint(false) }
@@ -210,10 +243,19 @@ export default function SignalCards() {
   const base = chosen !== null ? SIGNALS[chosen] : null!
   // Открытая ячейка показывает РЕАЛЬНЫЙ сигнал (замер: пики prob>=75%
   // заходят в ~84% случаев) — визуальный каркас остаётся от макета
+  // Реальные дата/время матча вместо макетных «14 мая»
+  const _rdt = realSig ? new Date(realSig.matchTime) : null
+  const _rdate = (_rdt && !isNaN(+_rdt)) ? _rdt.toLocaleDateString('ru', { day: 'numeric', month: 'short' }) : null
+  const _rtime = (_rdt && !isNaN(+_rdt)) ? _rdt.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' }) : null
   const c = (chosen !== null && realSig) ? {
     ...base,
     sport: realSig.sport,
+    // Фон под РЕАЛЬНЫЙ спорт (берём из ячейки-макета того же спорта) —
+    // иначе теннисный матч на фоне футбольного стадиона выдаёт подмену
+    bg:    SIGNALS.find(s => s.sport === realSig.sport)?.bg ?? base.bg,
     tag:   realSig.league || base.tag,
+    date:  _rdate ?? base.date,
+    time:  _rtime ?? base.time,
     home:  realSig.team1,
     away:  realSig.team2,
     homeLogo: realSig.homeLogo ?? null,
@@ -274,11 +316,24 @@ export default function SignalCards() {
         {/* FRONT content */}
         <div style={{ position: 'absolute', inset: 0 }}>
 
-        {/* Top bar — рарність + кнопка */}
+        {/* Top bar — рарність + исход (если ставка уже рассчитана) + кнопка */}
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'rgba(0,0,0,.5)', backdropFilter: 'blur(8px)' }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: RARITY[c.rarity].color, boxShadow: `0 0 8px ${RARITY[c.rarity].color}` }} />
-            <span style={{ fontFamily: mono, fontSize: 9.5, fontWeight: 800, letterSpacing: '.16em', color: RARITY[c.rarity].color }}>{RARITY[c.rarity].label}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'rgba(0,0,0,.5)', backdropFilter: 'blur(8px)' }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: RARITY[c.rarity].color, boxShadow: `0 0 8px ${RARITY[c.rarity].color}` }} />
+              <span style={{ fontFamily: mono, fontSize: 9.5, fontWeight: 800, letterSpacing: '.16em', color: RARITY[c.rarity].color }}>{RARITY[c.rarity].label}</span>
+            </div>
+            {realSig?.result && (
+              <div style={{ padding: '4px 10px', borderRadius: 20,
+                background: realSig.result === 'win' ? 'rgba(52,211,153,.2)' : 'rgba(248,113,113,.18)',
+                border: `1px solid ${realSig.result === 'win' ? 'rgba(52,211,153,.5)' : 'rgba(248,113,113,.45)'}`,
+                backdropFilter: 'blur(8px)' }}>
+                <span style={{ fontFamily: mono, fontSize: 9.5, fontWeight: 800, letterSpacing: '.1em',
+                  color: realSig.result === 'win' ? '#34D399' : '#F87171' }}>
+                  {realSig.result === 'win' ? '✅ ЗАШЛА' : '❌ НЕ ЗАШЛА'}
+                </span>
+              </div>
+            )}
           </div>
           <M.button whileTap={{ scale: .88 }} onClick={() => { haptic('light'); close() }} style={{ width: 36, height: 36, borderRadius: 10, border: 'none', cursor: 'pointer', background: 'rgba(0,0,0,.5)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: 'rgba(255,255,255,.7)' }}>✕</M.button>
         </div>
@@ -512,7 +567,11 @@ export default function SignalCards() {
         <div style={{ fontFamily: mono, fontSize: 9, fontWeight: 600, letterSpacing: '.35em', textTransform: 'uppercase' as const, color: '#A78BFA', marginBottom: 6 }}>Chimera AI · Сегодня</div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <div style={{ fontFamily: f, fontWeight: 800, fontSize: 22, lineHeight: 1 }}>
-            {chosen === null ? <>Твой <span style={{ color: '#A78BFA' }}>прогноз</span></> : <>Прогноз <span style={{ color: '#A78BFA' }}>открыт</span></>}
+            {chosen === null
+              ? <>Твой <span style={{ color: '#A78BFA' }}>прогноз</span></>
+              : realSig?.result
+                ? <>Ставка <span style={{ color: realSig.result === 'win' ? '#34D399' : '#F87171' }}>{realSig.result === 'win' ? 'сыграла ✅' : 'не зашла'}</span></>
+                : <>Прогноз <span style={{ color: '#A78BFA' }}>открыт</span></>}
           </div>
           {chosen === null ? (
             <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5,
@@ -543,31 +602,51 @@ export default function SignalCards() {
                 onClick={() => { haptic('medium'); isChosen ? setExpanded(true) : pick(i) }}
                 style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', height: 118, cursor: (chosen !== null && !isChosen) ? 'default' : 'pointer' }}
               >
-                <img src={s.bg} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: `brightness(${isChosen ? .42 : .18}) saturate(${isChosen ? .6 : .12})`, transition: 'filter .4s' }} />
+                <img src={isChosen && realSig ? c.bg : s.bg} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: `brightness(${isChosen ? .42 : .18}) saturate(${isChosen ? .6 : .12})`, transition: 'filter .4s' }} />
                 <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg,rgba(4,2,13,.92) 0%,rgba(4,2,13,.6) 55%,rgba(4,2,13,.3) 100%)' }} />
                 {isChosen && (
                   <>
                     <div style={{ position: 'absolute', inset: 0, borderRadius: 16, pointerEvents: 'none', boxShadow: `inset 0 0 0 1.5px ${RARITY[s.rarity].color}88` }} />
                     <M.div initial={{ opacity: 0, scale: .6 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', stiffness: 300 }}
-                      style={{ position: 'absolute', top: 8, right: 10, zIndex: 3, display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: RARITY[s.rarity].color, boxShadow: `0 0 8px ${RARITY[s.rarity].color}` }} />
-                      <span style={{ fontFamily: mono, fontSize: 9, fontWeight: 800, letterSpacing: '.16em', color: RARITY[s.rarity].color }}>{RARITY[s.rarity].label}</span>
+                      style={{ position: 'absolute', top: 8, right: 10, zIndex: 3, display: 'flex', alignItems: 'center', gap: 5,
+                        ...(realSig?.result ? { padding: '3px 9px', borderRadius: 20,
+                          background: realSig.result === 'win' ? 'rgba(52,211,153,.2)' : 'rgba(248,113,113,.18)',
+                          border: `1px solid ${realSig.result === 'win' ? 'rgba(52,211,153,.5)' : 'rgba(248,113,113,.45)'}` } : {}) }}>
+                      {realSig?.result ? (
+                        // Бесплатная ставка УЖЕ сыграла — показываем итог прямо на
+                        // ячейке, чтобы прошлый пик не читался как «новая ставка».
+                        <span style={{ fontFamily: mono, fontSize: 9, fontWeight: 800, letterSpacing: '.1em',
+                          color: realSig.result === 'win' ? '#34D399' : '#F87171' }}>
+                          {realSig.result === 'win' ? '✅ ЗАШЛА' : '❌ НЕ ЗАШЛА'}
+                        </span>
+                      ) : (
+                        <>
+                          <div style={{ width: 6, height: 6, borderRadius: '50%', background: RARITY[s.rarity].color, boxShadow: `0 0 8px ${RARITY[s.rarity].color}` }} />
+                          <span style={{ fontFamily: mono, fontSize: 9, fontWeight: 800, letterSpacing: '.16em', color: RARITY[s.rarity].color }}>{RARITY[s.rarity].label}</span>
+                        </>
+                      )}
                     </M.div>
                   </>
                 )}
                 <div style={{ position: 'relative', zIndex: 2, height: '100%', display: 'flex', alignItems: 'center', padding: '0 14px', gap: 12 }}>
                   <div style={{ position: 'relative', flexShrink: 0 }}>
-                    <img src={SPORT_ICONS[s.sport]} alt="" style={{ width: 52, height: 52, borderRadius: 12, opacity: isChosen ? .85 : .3 }} />
+                    <img src={SPORT_ICONS[isChosen && realSig ? c.sport : s.sport]} alt="" style={{ width: 52, height: 52, borderRadius: 12, opacity: isChosen ? .85 : .3 }} />
                     {!isChosen && <div style={{ position: 'absolute', inset: 0, borderRadius: 12, background: 'rgba(4,2,13,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><img src={lockIcon} width={24} height={24} alt="" /></div>}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     {isChosen ? (
+                      // Открытая ячейка показывает ТОТ ЖЕ реальный сигнал, что
+                      // и детальная карточка (c = мердж с realSig) — раньше тут
+                      // светился макет (Real Madrid), и после выхода из карточки
+                      // матч «менялся». Один источник правды.
                       <>
-                        <div style={{ fontFamily: mono, fontSize: 8, color: 'rgba(255,255,255,.38)', letterSpacing: '.15em', marginBottom: 4 }}>{s.tag} · {s.date} · {s.time}</div>
+                        <div style={{ fontFamily: mono, fontSize: 8, color: 'rgba(255,255,255,.38)', letterSpacing: '.15em', marginBottom: 4 }}>{c.tag} · {c.date} · {c.time}</div>
                         <div style={{ fontFamily: f, fontWeight: 700, fontSize: 14, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {s.home} <span style={{ color: 'rgba(255,255,255,.3)', fontWeight: 400 }}>vs</span> {s.away}
+                          {c.home} <span style={{ color: 'rgba(255,255,255,.3)', fontWeight: 400 }}>vs</span> {c.away}
                         </div>
-                        <div style={{ fontFamily: mono, fontSize: 9, color: '#A78BFA', marginTop: 4 }}>{s.rec} · {s.odds} · {s.ev}</div>
+                        <div style={{ fontFamily: mono, fontSize: 9, color: '#A78BFA', marginTop: 4 }}>
+                          {c.rec} · {c.odds}{realSig ? ` · уверенность ${realSig.confidence}%` : ` · ${s.ev}`}
+                        </div>
                       </>
                     ) : (
                       <>
