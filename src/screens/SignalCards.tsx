@@ -204,6 +204,7 @@ export default function SignalCards() {
   // Индекс = ТА ЖЕ ячейка, которую юзер выбрал (persist); фолбэк — хэш пары.
   useEffect(() => {
     if (!realSig?.used || chosen !== null) return
+    try { persistSet('chimera_free_used', '1') } catch { /* ignore */ }
     let idx: number | null = null
     try {
       const saved = persistGetLocal('chimera_free_cell')
@@ -232,6 +233,9 @@ export default function SignalCards() {
     // Запоминаем ВЫБРАННУЮ ячейку: при возврате открытой должна быть она же
     // (раньше восстанавливалась по хэшу — брал 4-ю, показывало 1-ю)
     try { persistSet('chimera_free_cell', String(i)) } catch { /* ignore */ }
+    // Флаг «бесплатная использована» → меню Сигналы (CategoryScreen) сразу
+    // рисует всё закрытым, без мелькания карточки до ответа сервера.
+    try { persistSet('chimera_free_used', '1') } catch { /* ignore */ }
     // Сервер запоминает выбор по ТОЧНОМУ id кандидата (надёжно, без матча по
     // именам) → бот пришлёт пуш с исходом бесплатной ставки
     api.funnelPick(realSig.sport, realSig.team1, realSig.team2, realSig.id).catch(() => {})

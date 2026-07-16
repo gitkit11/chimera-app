@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence, useMotionValue, useTransform, animate as animateMV } from 'framer-motion'
 import { useFunnel } from '../store/funnel'
 import { haptic } from '../haptic'
+import { persistGetLocal, persistSet } from '../persist'
 import footballIcon   from '../assets/icons/football.svg'
 import basketballIcon from '../assets/icons/basketball.svg'
 import tennisIcon     from '../assets/icons/tennis.svg'
@@ -555,10 +556,19 @@ export default function CategoryScreen() {
   // НЕ показываем открытую «бесплатную» карточку — всё под замком. used хранится
   // на СЕРВЕРЕ (переживает полное закрытие аппа, в отличие от funnelSignalIdx,
   // который сбрасывался → в меню всплывала «новая бесплатная»).
-  const [freeUsed, setFreeUsed] = useState(false)
+  // _fu: '1' использована, '0' проверено и не использована, null ещё не знаем.
+  // Инициализируем СИНХРОННО из кэша → нет мелькания «показал карточку и спрятал»
+  // (раньше freeUsed стартовал false → карточка мигала до ответа сервера).
+  const _fu = persistGetLocal('chimera_free_used')
+  const [freeUsed, setFreeUsed]       = useState(_fu === '1')
+  const [freeChecked, setFreeChecked] = useState(_fu !== null)
   useEffect(() => {
     if (isPro) return
-    api.funnelSignal().then(s => setFreeUsed(!!(s && s.used))).catch(() => {})
+    api.funnelSignal().then(s => {
+      const used = !!(s && s.used)
+      setFreeUsed(used); setFreeChecked(true)
+      persistSet('chimera_free_used', used ? '1' : '0')
+    }).catch(() => setFreeChecked(true))
   }, [isPro])
 
   useEffect(() => {
@@ -1236,8 +1246,10 @@ export default function CategoryScreen() {
         ) : (
           <div style={{ display:'flex',flexDirection:'column',gap:10 }}>
             {cards.map((c,i)=>{
-              // freeUsed → бесплатная воронки использована → в меню всё закрыто
-              const freeIdx = (screen === 'home-signals' && !freeUsed)
+              // Пока используемость не определена (freeChecked=false) — держим
+              // ЗАКРЫТО (freeIdx=-1): лучше «замок → карточка появилась», чем
+              // «карточка мигнула и спряталась». freeUsed → всё закрыто навсегда.
+              const freeIdx = (screen === 'home-signals' && freeChecked && !freeUsed)
                 ? (funnelSignalIdx !== null ? funnelSignalIdx : 0)
                 : -1
               const isFav      = favorites.includes(cardKey(c))

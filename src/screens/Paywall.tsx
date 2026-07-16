@@ -243,17 +243,21 @@ export default function Paywall() {
            flex-basis 0px (НЕ auto!): панель забирает только ОСТАТОК высоты после
            карточек. С auto её базис = натуральная высота тикера (~4000px строк)
            → она перетягивала дележ и ужимала PRO/«бесплатно» почти в ноль. */}
-      <div style={{ flex: '1 1 0px', minHeight: 108, display: 'flex', flexDirection: 'column' as const,
-        borderTop: '1px solid rgba(255,255,255,.06)', position: 'relative', zIndex: 1,
-        background: 'linear-gradient(180deg,rgba(124,58,237,.055),transparent 62%)' }}>
+      <div style={{ flex: '1 1 0px', minHeight: 112, display: 'flex', flexDirection: 'column' as const,
+        position: 'relative', zIndex: 1,
+        background: 'linear-gradient(180deg,rgba(124,58,237,.06),transparent 62%)' }}>
+        {/* Стильная разделительная линия сверху: фиолетовый→зелёный со свечением */}
+        <div style={{ flexShrink: 0, height: 1.5, background:
+          'linear-gradient(90deg,transparent,rgba(167,139,250,.55) 26%,rgba(52,211,153,.62) 50%,rgba(167,139,250,.55) 74%,transparent)',
+          boxShadow: '0 0 10px rgba(139,92,246,.3)' }} />
         {/* Заголовок панели */}
         <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8,
-          padding: '10px 16px 7px' }}>
+          padding: '11px 16px 8px' }}>
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#34D399',
             boxShadow: '0 0 8px rgba(52,211,153,.9)', flexShrink: 0,
             animation: 'pw-pulse 1.6s ease-in-out infinite' }} />
           <span style={{ fontFamily: mono, fontSize: 8.5, fontWeight: 700, letterSpacing: '.14em',
-            textTransform: 'uppercase' as const, color: 'rgba(255,255,255,.44)' }}>
+            textTransform: 'uppercase' as const, color: 'rgba(255,255,255,.5)' }}>
             Агенты работают сейчас
           </span>
           <span style={{ flex: 1 }} />
@@ -263,6 +267,9 @@ export default function Paywall() {
             LIVE
           </span>
         </div>
+        {/* Тонкий разделитель под заголовком */}
+        <div style={{ flexShrink: 0, height: 1, margin: '0 16px',
+          background: 'linear-gradient(90deg,rgba(167,139,250,.22),rgba(255,255,255,.05) 45%,transparent 82%)' }} />
         {/* Прокручиваемое окно трансляции */}
         <div style={{ flex: '1 1 auto', minHeight: 0, overflow: 'hidden', position: 'relative' }}>
         <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 22, zIndex: 2, pointerEvents: 'none',
