@@ -26,6 +26,8 @@ interface FunnelState {
   favorites: string[]
   isPro: boolean
   proDaysLeft: number
+  proPlan: string           // full | bk_free | trial | admin | free
+  proUntil: string | null   // «YYYY-MM-DD» окончание подписки
   cardOpen: boolean
   funnelSignalIdx: number | null
   viewedCardIds: string[]
@@ -37,6 +39,7 @@ interface FunnelState {
   isFavorite: (id: string) => boolean
   setPro: (v: boolean) => void
   setProDaysLeft: (v: number) => void
+  setProInfo: (plan: string, until: string | null) => void
   setCardOpen: (v: boolean) => void
   setFunnelSignalIdx: (i: number | null) => void
   markViewed: (id: string) => void
@@ -63,6 +66,8 @@ export const useFunnel = create<FunnelState>((set, get) => ({
   favorites: [],
   isPro: localStorage.getItem(DEV_PRO_KEY) === '1',
   proDaysLeft: 7,
+  proPlan: 'full',
+  proUntil: null,
   cardOpen: false,
   funnelSignalIdx: null,
   viewedCardIds: readIds(LS_VIEWED),
@@ -82,6 +87,7 @@ export const useFunnel = create<FunnelState>((set, get) => ({
   isFavorite: (id) => get().favorites.includes(id),
   setPro: (isPro) => { localStorage.setItem(DEV_PRO_KEY, isPro ? '1' : '0'); set({ isPro }) },
   setProDaysLeft: (proDaysLeft) => set({ proDaysLeft }),
+  setProInfo: (proPlan, proUntil) => set({ proPlan, proUntil }),
   setCardOpen: (cardOpen) => set({ cardOpen }),
   setFunnelSignalIdx: (funnelSignalIdx) => set({ funnelSignalIdx }),
   markViewed: (id) => set(s => {

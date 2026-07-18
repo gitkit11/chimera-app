@@ -108,6 +108,8 @@ export interface UserInfo {
   first_name: string
   isPro: boolean
   daysLeft: number
+  plan?: string          // full | bk_free | trial | admin | free
+  until?: string | null  // дата окончания подписки «YYYY-MM-DD»
 }
 
 export interface Signal {

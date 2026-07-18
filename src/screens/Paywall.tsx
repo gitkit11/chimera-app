@@ -32,6 +32,8 @@ export default function Paywall() {
   const go          = useFunnel(s => s.go)
   const isPro       = useFunnel(s => s.isPro)
   const proDaysLeft = useFunnel(s => s.proDaysLeft)
+  const proPlan     = useFunnel(s => s.proPlan)
+  const proUntil    = useFunnel(s => s.proUntil)
   const tickerRef   = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -61,25 +63,138 @@ export default function Paywall() {
     }
   }, [])
 
-  if (isPro) return (
-    <M.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-      style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', background: '#04020D',
-        padding: `0 28px max(40px, calc(env(safe-area-inset-bottom,0px) + 24px))` }}>
-      <div style={{ fontFamily: f, fontWeight: 900, fontSize: 28, textAlign: 'center', marginBottom: 6 }}>
-        Chimera <span style={{ color: '#A78BFA' }}>PRO</span>
-      </div>
-      <div style={{ fontFamily: mono, fontSize: 11, color: 'rgba(255,255,255,.3)', marginBottom: 28 }}>
-        {proDaysLeft} дней осталось
-      </div>
-      <M.button whileTap={{ scale: .97 }} onClick={() => { haptic('medium'); go('home') }}
-        style={{ width: '100%', maxWidth: 300, padding: '15px', borderRadius: 16, border: 'none',
-          cursor: 'pointer', background: 'linear-gradient(135deg,#2D1065,#7C3AED)',
-          fontFamily: f, fontWeight: 800, fontSize: 15, color: '#F5F3FF' }}>
-        ← К сигналам
-      </M.button>
-    </M.div>
-  )
+  if (isPro) {
+    // Метаданные плана: владелец / PRO бесплатный (StawkiBet) / пробный / PRO
+    const PLAN = proPlan === 'admin'
+        ? { label: 'ВЛАДЕЛЕЦ', accent: GOLD, sub: 'Полный доступ' }
+      : proPlan === 'bk_free'
+        ? { label: 'PRO БЕСПЛАТНЫЙ', accent: GOLD, sub: 'от StawkiBet' }
+      : proPlan === 'trial'
+        ? { label: 'ПРОБНЫЙ PRO', accent: '#A78BFA', sub: 'тест-доступ' }
+        : { label: 'PRO', accent: '#A78BFA', sub: 'полная подписка' }
+    const isForever = proPlan === 'admin'
+    // «2026-08-15» → «15 авг 2026»
+    const MON = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек']
+    const untilStr = (() => {
+      if (!proUntil) return ''
+      const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(proUntil)
+      if (!m) return ''
+      return `${+m[3]} ${MON[+m[2] - 1] ?? ''} ${m[1]}`
+    })()
+    const PERKS = [
+      'Все сигналы по 5 видам спорта',
+      'Экспрессы и тоталы',
+      'Банкер дня и карточка недели',
+      'Избранное с пуш-уведомлениями об исходе',
+      'Личные встречи и движение линии',
+    ]
+    return (
+      <M.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: .26 }}
+        style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+          background: '#04020D', overflow: 'hidden' }}>
+        {/* Ambient glow под акцент плана */}
+        <div style={{ position: 'absolute', top: '12%', left: '50%', transform: 'translateX(-50%)',
+          width: 360, height: 260, pointerEvents: 'none', zIndex: 0,
+          background: `radial-gradient(ellipse,${PLAN.accent}1f 0%,transparent 70%)`, filter: 'blur(16px)' }} />
+
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', scrollbarWidth: 'none' as const,
+          position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          padding: `var(--header-top) 24px max(40px, calc(env(safe-area-inset-bottom,0px) + 24px))` }}>
+
+          {/* Логотип с короной-свечением */}
+          <M.div initial={{ opacity: 0, scale: .8 }} animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: .05, type: 'spring', stiffness: 200 }}
+            style={{ marginBottom: 16, filter: `drop-shadow(0 0 16px ${PLAN.accent}55)` }}>
+            <ChimeraLogo size={58} />
+          </M.div>
+
+          {/* Плашка плана */}
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 14px',
+            borderRadius: 999, marginBottom: 10,
+            background: `${PLAN.accent}1c`, border: `1px solid ${PLAN.accent}55` }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+              <path d="M3.6 8.2 7 12l5-6 5 6 3.4-3.8-1.5 9.3a1 1 0 0 1-1 .85H6.1a1 1 0 0 1-1-.85L3.6 8.2Z"
+                fill={PLAN.accent} />
+            </svg>
+            <span style={{ fontFamily: mono, fontSize: 10, fontWeight: 800, letterSpacing: '.16em',
+              color: PLAN.accent }}>{PLAN.label}</span>
+          </div>
+
+          <div style={{ fontFamily: f, fontWeight: 900, fontSize: 26, textAlign: 'center',
+            lineHeight: 1, marginBottom: 6 }}>
+            Chimera <span style={{ color: PLAN.accent }}>{proPlan === 'admin' ? '∞' : 'PRO'}</span>
+          </div>
+          <div style={{ fontFamily: mono, fontSize: 9.5, color: 'rgba(255,255,255,.3)',
+            letterSpacing: '.06em', marginBottom: 22 }}>{PLAN.sub}</div>
+
+          {/* Статус-карточка: активна + осталось + дата */}
+          <div style={{ width: '100%', maxWidth: 320, borderRadius: 18, overflow: 'hidden',
+            background: 'linear-gradient(155deg,#0E0B1E,#070514)',
+            border: `1px solid ${PLAN.accent}33`, marginBottom: 18 }}>
+            <div style={{ height: 1.5,
+              background: `linear-gradient(90deg,transparent,${PLAN.accent} 50%,transparent)` }} />
+            <div style={{ padding: '16px 18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                marginBottom: 14 }}>
+                <span style={{ fontFamily: mono, fontSize: 9, letterSpacing: '.14em',
+                  color: 'rgba(255,255,255,.35)', textTransform: 'uppercase' as const }}>Статус</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5,
+                  fontFamily: mono, fontSize: 9.5, fontWeight: 800, letterSpacing: '.1em', color: '#34D399' }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#34D399',
+                    boxShadow: '0 0 8px #34D399' }} /> АКТИВНА
+                </span>
+              </div>
+              {isForever ? (
+                <div style={{ fontFamily: f, fontWeight: 900, fontSize: 26, color: PLAN.accent }}>
+                  Безлимит
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                  <span style={{ fontFamily: f, fontWeight: 900, fontSize: 40, lineHeight: 1,
+                    color: '#F5F3FF' }}>{proDaysLeft}</span>
+                  <span style={{ fontFamily: f, fontWeight: 700, fontSize: 14,
+                    color: 'rgba(255,255,255,.5)' }}>дней осталось</span>
+                </div>
+              )}
+              {untilStr && !isForever && (
+                <div style={{ fontFamily: mono, fontSize: 10, color: 'rgba(255,255,255,.4)',
+                  marginTop: 8 }}>Действует до <b style={{ color: 'rgba(255,255,255,.7)' }}>{untilStr}</b></div>
+              )}
+            </div>
+          </div>
+
+          {/* Что открыто */}
+          <div style={{ width: '100%', maxWidth: 320, marginBottom: 22 }}>
+            <div style={{ fontFamily: mono, fontSize: 8.5, letterSpacing: '.2em',
+              color: 'rgba(255,255,255,.28)', textTransform: 'uppercase' as const, marginBottom: 10 }}>
+              Тебе открыто
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+              {PERKS.map((p, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                    <circle cx="12" cy="12" r="11" fill={`${PLAN.accent}22`} stroke={`${PLAN.accent}66`} strokeWidth="1" />
+                    <path d="M7 12.5l3 3 7-7.5" stroke={PLAN.accent} strokeWidth="2"
+                      strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <span style={{ fontFamily: f, fontWeight: 500, fontSize: 12.5,
+                    color: 'rgba(255,255,255,.78)' }}>{p}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <M.button whileTap={{ scale: .97 }} onClick={() => { haptic('medium'); go('home') }}
+            style={{ width: '100%', maxWidth: 320, padding: '15px', borderRadius: 16, border: 'none',
+              cursor: 'pointer', background: 'linear-gradient(135deg,#2D1065,#7C3AED)',
+              fontFamily: f, fontWeight: 800, fontSize: 15, color: '#F5F3FF' }}>
+            ← К сигналам
+          </M.button>
+        </div>
+      </M.div>
+    )
+  }
 
   return (
     <M.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: .26 }}

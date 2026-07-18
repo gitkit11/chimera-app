@@ -263,6 +263,7 @@ export default function App() {
   const isPro       = useFunnel(s => s.isPro)
   const setPro      = useFunnel(s => s.setPro)
   const setProDays  = useFunnel(s => s.setProDaysLeft)
+  const setProInfo  = useFunnel(s => s.setProInfo)
 
   // Трекинг глубины: каждый новый экран сессии → POST /api/track
   useEffect(() => {
@@ -282,6 +283,7 @@ export default function App() {
     api.user().then(u => {
       setPro(u.isPro)
       setProDays(u.daysLeft)
+      setProInfo(u.plan ?? 'full', u.until ?? null)
       // Подписчику онбординг-воронка не нужна → всегда открываем ГЛАВНОЕ МЕНЮ
       // (не последнюю категорию). Метки «открыто» на карточках сохраняются
       // отдельно через CloudStorage.
