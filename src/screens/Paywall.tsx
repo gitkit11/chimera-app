@@ -85,109 +85,163 @@ export default function Paywall() {
       'Все сигналы по 5 видам спорта',
       'Экспрессы и тоталы',
       'Банкер дня и карточка недели',
-      'Избранное с пуш-уведомлениями об исходе',
+      'Избранное с пуш-уведомлениями',
       'Личные встречи и движение линии',
     ]
+    const A = PLAN.accent
+    const isGold = A === GOLD
+    // Голографический перелив на блике — под акцент плана
+    const holo = isGold
+      ? 'linear-gradient(105deg,transparent 30%,rgba(255,240,190,.16) 44%,rgba(255,255,255,.30) 50%,rgba(255,225,150,.16) 56%,transparent 70%)'
+      : 'linear-gradient(105deg,transparent 30%,rgba(200,180,255,.16) 44%,rgba(255,255,255,.30) 50%,rgba(160,200,255,.16) 56%,transparent 70%)'
     return (
       <M.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: .26 }}
         style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
           background: '#04020D', overflow: 'hidden' }}>
-        {/* Ambient glow под акцент плана */}
-        <div style={{ position: 'absolute', top: '12%', left: '50%', transform: 'translateX(-50%)',
-          width: 360, height: 260, pointerEvents: 'none', zIndex: 0,
-          background: `radial-gradient(ellipse,${PLAN.accent}1f 0%,transparent 70%)`, filter: 'blur(16px)' }} />
+        <style>{`
+          @keyframes pm-sheen { 0%{transform:translateX(-140%) skewX(-14deg)} 55%,100%{transform:translateX(320%) skewX(-14deg)} }
+          @keyframes pm-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+          @keyframes pm-halo  { 0%,100%{opacity:.45;transform:translateX(-50%) scale(1)} 50%{opacity:.8;transform:translateX(-50%) scale(1.08)} }
+          @media (prefers-reduced-motion: reduce){ .pm-sheen,.pm-card-wrap,.pm-halo{animation:none!important} }
+        `}</style>
+
+        {/* Живое гало под акцент плана */}
+        <div className="pm-halo" style={{ position: 'absolute', top: '9%', left: '50%',
+          width: 420, height: 300, pointerEvents: 'none', zIndex: 0, transform: 'translateX(-50%)',
+          background: `radial-gradient(ellipse,${A}26 0%,transparent 68%)`, filter: 'blur(20px)',
+          animation: 'pm-halo 6s ease-in-out infinite' }} />
 
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', scrollbarWidth: 'none' as const,
           position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
-          padding: `var(--header-top) 24px max(40px, calc(env(safe-area-inset-bottom,0px) + 24px))` }}>
+          padding: `var(--header-top) 22px max(40px, calc(env(safe-area-inset-bottom,0px) + 24px))` }}>
 
-          {/* Логотип с короной-свечением */}
-          <M.div initial={{ opacity: 0, scale: .8 }} animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: .05, type: 'spring', stiffness: 200 }}
-            style={{ marginBottom: 16, filter: `drop-shadow(0 0 16px ${PLAN.accent}55)` }}>
-            <ChimeraLogo size={58} />
+          {/* ══ ЧЛЕНСКАЯ КАРТА ══ */}
+          <M.div className="pm-card-wrap" initial={{ opacity: 0, y: 22, rotateX: 12, scale: .94 }}
+            animate={{ opacity: 1, y: 0, rotateX: 0, scale: 1 }}
+            transition={{ delay: .05, type: 'spring', stiffness: 150, damping: 16 }}
+            style={{ width: '100%', maxWidth: 340, perspective: 900, marginBottom: 26,
+              animation: 'pm-float 7s ease-in-out infinite' }}>
+            <div style={{ position: 'relative', width: '100%', aspectRatio: '1.62 / 1',
+              borderRadius: 20, overflow: 'hidden',
+              background: `radial-gradient(135% 135% at 10% 6%,${A}26 0%,#0b0820 44%,#050410 100%)`,
+              border: `1px solid ${A}55`,
+              boxShadow: `inset 0 1px 0 rgba(255,255,255,.10), 0 24px 54px -18px ${A}66, 0 0 0 .5px rgba(255,255,255,.03)` }}>
+
+              {/* Гравированная текстура (гильош) */}
+              <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: .5,
+                backgroundImage: 'repeating-linear-gradient(115deg,rgba(255,255,255,.035) 0 1px,transparent 1px 8px)' }} />
+              {/* Голографический блик */}
+              <div className="pm-sheen" style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '55%',
+                pointerEvents: 'none', background: holo, animation: 'pm-sheen 6s ease-in-out infinite 1.2s' }} />
+              {/* Тёплое пятно в углу */}
+              <div style={{ position: 'absolute', top: -40, right: -30, width: 150, height: 150,
+                pointerEvents: 'none', background: `radial-gradient(circle,${A}30,transparent 65%)`, filter: 'blur(8px)' }} />
+
+              <div style={{ position: 'relative', zIndex: 2, height: '100%',
+                display: 'flex', flexDirection: 'column', padding: '15px 17px' }}>
+                {/* Верх: лого+бренд · статус */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                    <div style={{ filter: `drop-shadow(0 0 6px ${A}66)` }}><ChimeraLogo size={26} /></div>
+                    <div>
+                      <div style={{ fontFamily: f, fontWeight: 800, fontSize: 12, lineHeight: 1,
+                        letterSpacing: '.02em' }}>CHIMERA</div>
+                      <div style={{ fontFamily: mono, fontSize: 7, letterSpacing: '.24em',
+                        color: 'rgba(255,255,255,.34)', marginTop: 2 }}>MEMBERSHIP</div>
+                    </div>
+                  </div>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5,
+                    padding: '4px 9px', borderRadius: 999, background: 'rgba(52,211,153,.12)',
+                    border: '1px solid rgba(52,211,153,.32)' }}>
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#34D399',
+                      boxShadow: '0 0 7px #34D399' }} />
+                    <span style={{ fontFamily: mono, fontSize: 8, fontWeight: 800, letterSpacing: '.12em',
+                      color: '#34D399' }}>АКТИВНА</span>
+                  </span>
+                </div>
+
+                {/* Центр: крупный план-вордмарк */}
+                <div style={{ marginTop: 'auto' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 9 }}>
+                    <div style={{ fontFamily: f, fontWeight: 900, fontSize: isForever ? 52 : 44,
+                      lineHeight: .9, letterSpacing: '-.01em',
+                      background: `linear-gradient(140deg,#FFFFFF 18%,${A} 105%)`,
+                      WebkitBackgroundClip: 'text', backgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      filter: `drop-shadow(0 2px 10px ${A}55)` }}>
+                      {isForever ? '∞' : 'PRO'}
+                    </div>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginBottom: 8,
+                      padding: '3px 9px', borderRadius: 7, background: `${A}1c`, border: `1px solid ${A}4d` }}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                        <path d="M3.6 8.2 7 12l5-6 5 6 3.4-3.8-1.5 9.3a1 1 0 0 1-1 .85H6.1a1 1 0 0 1-1-.85L3.6 8.2Z" fill={A} />
+                      </svg>
+                      <span style={{ fontFamily: mono, fontSize: 8, fontWeight: 800, letterSpacing: '.12em',
+                        color: A }}>{PLAN.label}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Низ: срок · осталось (как VALID THRU на карте) */}
+                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
+                  marginTop: 12 }}>
+                  <div>
+                    <div style={{ fontFamily: mono, fontSize: 7, letterSpacing: '.18em',
+                      color: 'rgba(255,255,255,.32)' }}>ДЕЙСТВУЕТ ДО</div>
+                    <div style={{ fontFamily: f, fontWeight: 700, fontSize: 13, marginTop: 2,
+                      color: 'rgba(255,255,255,.9)' }}>{isForever ? 'БЕЗЛИМИТ' : (untilStr || '—')}</div>
+                  </div>
+                  {!isForever && (
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontFamily: mono, fontSize: 7, letterSpacing: '.18em',
+                        color: 'rgba(255,255,255,.32)' }}>ОСТАЛОСЬ</div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, justifyContent: 'flex-end' }}>
+                        <span style={{ fontFamily: f, fontWeight: 900, fontSize: 20, lineHeight: 1,
+                          color: '#F5F3FF' }}>{proDaysLeft}</span>
+                        <span style={{ fontFamily: mono, fontSize: 8.5,
+                          color: 'rgba(255,255,255,.5)' }}>дн.</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </M.div>
 
-          {/* Плашка плана */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 14px',
-            borderRadius: 999, marginBottom: 10,
-            background: `${PLAN.accent}1c`, border: `1px solid ${PLAN.accent}55` }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-              <path d="M3.6 8.2 7 12l5-6 5 6 3.4-3.8-1.5 9.3a1 1 0 0 1-1 .85H6.1a1 1 0 0 1-1-.85L3.6 8.2Z"
-                fill={PLAN.accent} />
-            </svg>
-            <span style={{ fontFamily: mono, fontSize: 10, fontWeight: 800, letterSpacing: '.16em',
-              color: PLAN.accent }}>{PLAN.label}</span>
-          </div>
-
-          <div style={{ fontFamily: f, fontWeight: 900, fontSize: 26, textAlign: 'center',
-            lineHeight: 1, marginBottom: 6 }}>
-            Chimera <span style={{ color: PLAN.accent }}>{proPlan === 'admin' ? '∞' : 'PRO'}</span>
-          </div>
-          <div style={{ fontFamily: mono, fontSize: 9.5, color: 'rgba(255,255,255,.3)',
-            letterSpacing: '.06em', marginBottom: 22 }}>{PLAN.sub}</div>
-
-          {/* Статус-карточка: активна + осталось + дата */}
-          <div style={{ width: '100%', maxWidth: 320, borderRadius: 18, overflow: 'hidden',
-            background: 'linear-gradient(155deg,#0E0B1E,#070514)',
-            border: `1px solid ${PLAN.accent}33`, marginBottom: 18 }}>
-            <div style={{ height: 1.5,
-              background: `linear-gradient(90deg,transparent,${PLAN.accent} 50%,transparent)` }} />
-            <div style={{ padding: '16px 18px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                marginBottom: 14 }}>
-                <span style={{ fontFamily: mono, fontSize: 9, letterSpacing: '.14em',
-                  color: 'rgba(255,255,255,.35)', textTransform: 'uppercase' as const }}>Статус</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5,
-                  fontFamily: mono, fontSize: 9.5, fontWeight: 800, letterSpacing: '.1em', color: '#34D399' }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#34D399',
-                    boxShadow: '0 0 8px #34D399' }} /> АКТИВНА
-                </span>
-              </div>
-              {isForever ? (
-                <div style={{ fontFamily: f, fontWeight: 900, fontSize: 26, color: PLAN.accent }}>
-                  Безлимит
-                </div>
-              ) : (
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                  <span style={{ fontFamily: f, fontWeight: 900, fontSize: 40, lineHeight: 1,
-                    color: '#F5F3FF' }}>{proDaysLeft}</span>
-                  <span style={{ fontFamily: f, fontWeight: 700, fontSize: 14,
-                    color: 'rgba(255,255,255,.5)' }}>дней осталось</span>
-                </div>
-              )}
-              {untilStr && !isForever && (
-                <div style={{ fontFamily: mono, fontSize: 10, color: 'rgba(255,255,255,.4)',
-                  marginTop: 8 }}>Действует до <b style={{ color: 'rgba(255,255,255,.7)' }}>{untilStr}</b></div>
-              )}
-            </div>
-          </div>
-
           {/* Что открыто */}
-          <div style={{ width: '100%', maxWidth: 320, marginBottom: 22 }}>
-            <div style={{ fontFamily: mono, fontSize: 8.5, letterSpacing: '.2em',
-              color: 'rgba(255,255,255,.28)', textTransform: 'uppercase' as const, marginBottom: 10 }}>
-              Тебе открыто
+          <M.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .22 }}
+            style={{ width: '100%', maxWidth: 340, marginBottom: 22 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12 }}>
+              <span style={{ fontFamily: mono, fontSize: 8.5, letterSpacing: '.2em',
+                color: 'rgba(255,255,255,.3)', textTransform: 'uppercase' as const }}>Тебе открыто</span>
+              <span style={{ flex: 1, height: 1,
+                background: `linear-gradient(90deg,${A}44,transparent)` }} />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {PERKS.map((p, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
-                    <circle cx="12" cy="12" r="11" fill={`${PLAN.accent}22`} stroke={`${PLAN.accent}66`} strokeWidth="1" />
-                    <path d="M7 12.5l3 3 7-7.5" stroke={PLAN.accent} strokeWidth="2"
+                <M.div key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: .26 + i * .05 }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0,
+                    filter: `drop-shadow(0 0 5px ${A}44)` }}>
+                    <circle cx="12" cy="12" r="11" fill={`${A}22`} stroke={`${A}70`} strokeWidth="1" />
+                    <path d="M7 12.5l3 3 7-7.5" stroke={A} strokeWidth="2.2"
                       strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   <span style={{ fontFamily: f, fontWeight: 500, fontSize: 12.5,
-                    color: 'rgba(255,255,255,.78)' }}>{p}</span>
-                </div>
+                    color: 'rgba(255,255,255,.8)' }}>{p}</span>
+                </M.div>
               ))}
             </div>
-          </div>
+          </M.div>
 
           <M.button whileTap={{ scale: .97 }} onClick={() => { haptic('medium'); go('home') }}
-            style={{ width: '100%', maxWidth: 320, padding: '15px', borderRadius: 16, border: 'none',
-              cursor: 'pointer', background: 'linear-gradient(135deg,#2D1065,#7C3AED)',
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .5 }}
+            style={{ width: '100%', maxWidth: 340, padding: '15px', borderRadius: 16, border: 'none',
+              cursor: 'pointer',
+              background: isGold ? 'linear-gradient(135deg,#5c4310,#B8860B)' : 'linear-gradient(135deg,#2D1065,#7C3AED)',
+              boxShadow: `0 8px 24px -8px ${A}88`,
               fontFamily: f, fontWeight: 800, fontSize: 15, color: '#F5F3FF' }}>
             ← К сигналам
           </M.button>
