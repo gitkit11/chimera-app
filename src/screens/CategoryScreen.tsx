@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence, useMotionValue, useTransform, animate as animateMV } from 'framer-motion'
 import { useFunnel } from '../store/funnel'
 import { haptic } from '../haptic'
@@ -659,12 +659,19 @@ export default function CategoryScreen() {
   }, [screen])
 
   // Сигналы/тоталы/неделя/избранное — ОДИН инстанс CategoryScreen (key="category").
-  // При смене вкладки сбрасываем открытую детальную карточку, иначе она мелькает
-  // «старым экраном» поверх новой вкладки на первом кадре.
-  useEffect(() => {
-    setOpenCard(null); setFlipped(false); setCardOpen(false)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screen])
+  // Смена вкладки: детальную карточку сбрасываем СИНХРОННО В РЕНДЕРЕ. Раньше это
+  // жило в useEffect([screen]) — а он срабатывает ПОСЛЕ кадра, поэтому старая
+  // карточка (детальный экран прошлой ставки) успевала мелькнуть поверх новой
+  // вкладки на первом кадре. setState во время рендера → React пере-рендерит
+  // до пейнта, старый экран не показывается вообще.
+  const prevScreenRef = useRef(screen)
+  if (prevScreenRef.current !== screen) {
+    prevScreenRef.current = screen
+    if (openCard) setOpenCard(null)
+    if (flipped)  setFlipped(false)
+  }
+  // Стор cardOpen (нижнее меню) сбрасываем в эффекте — на кадр позже не страшно.
+  useEffect(() => { setCardOpen(false) }, [screen, setCardOpen])
 
   const meta = CATEGORY_META[screen] || CATEGORY_META['home-signals']
   const isLoading = liveCards === null
