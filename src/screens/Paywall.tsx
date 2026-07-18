@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { motion } from 'framer-motion'
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { useFunnel } from '../store/funnel'
+import { api } from '../api'
 import logoIcon from '../assets/icon_dark2.png'
 import stawkiLogo from '../assets/stawkibet.svg'
 import { haptic } from '../haptic'
@@ -35,6 +36,26 @@ export default function Paywall() {
   const proPlan     = useFunnel(s => s.proPlan)
   const proUntil    = useFunnel(s => s.proUntil)
   const tickerRef   = useRef<HTMLDivElement>(null)
+
+  // Живые цифры системы для PRO-статуса: не общий чеклист «что открыто», а
+  // реальная отдача подписки прямо сейчас (винрейт/ROI + что доступно сегодня).
+  const [live, setLive] = useState<{ winrate: number; roi: number; wins: number;
+    today: number; banker: number | null } | null>(null)
+  useEffect(() => {
+    if (!isPro) return
+    Promise.allSettled([api.botStats(), api.botSignals()]).then(([st, sg]) => {
+      const s = st.status === 'fulfilled' ? st.value : null
+      const list = sg.status === 'fulfilled' ? sg.value : []
+      const bk = list.find(x => x.isBanker)
+      setLive({
+        winrate: s ? Math.round(s.winrate) : 0,
+        roi: s ? Math.round(s.roi) : 0,
+        wins: s ? s.total_wins : 0,
+        today: list.length,
+        banker: bk ? Math.round(bk.confidence) : null,
+      })
+    }).catch(() => { /* ignore */ })
+  }, [isPro])
 
   useEffect(() => {
     let anim: Animation | null = null
@@ -81,13 +102,8 @@ export default function Paywall() {
       if (!m) return ''
       return `${+m[3]} ${MON[+m[2] - 1] ?? ''} ${m[1]}`
     })()
-    const PERKS = [
-      'Все сигналы по 5 видам спорта',
-      'Экспрессы и тоталы',
-      'Банкер дня и карточка недели',
-      'Избранное с пуш-уведомлениями',
-      'Личные встречи и движение линии',
-    ]
+    const ACCESS = ['Все сигналы', 'Экспрессы', 'Тоталы', 'Банкер дня',
+      'Карточка недели', 'Избранное + пуши', '5 видов спорта']
     const A = PLAN.accent
     const isGold = A === GOLD
     // Голографический перелив на блике — под акцент плана
@@ -209,31 +225,66 @@ export default function Paywall() {
             </div>
           </M.div>
 
-          {/* Что открыто */}
-          <M.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .22 }}
-            style={{ width: '100%', maxWidth: 340, marginBottom: 22 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12 }}>
-              <span style={{ fontFamily: mono, fontSize: 8.5, letterSpacing: '.2em',
-                color: 'rgba(255,255,255,.3)', textTransform: 'uppercase' as const }}>Тебе открыто</span>
-              <span style={{ flex: 1, height: 1,
-                background: `linear-gradient(90deg,${A}44,transparent)` }} />
+          {/* ══ ЖИВЫЕ ЦИФРЫ: реальная отдача подписки прямо сейчас ══ */}
+          <M.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .2 }}
+            style={{ width: '100%', maxWidth: 340, marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 11 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: mono,
+                fontSize: 8.5, letterSpacing: '.2em', color: 'rgba(255,255,255,.32)',
+                textTransform: 'uppercase' as const }}>
+                <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#34D399',
+                  boxShadow: '0 0 7px #34D399' }} /> PRO в деле · сейчас
+              </span>
+              <span style={{ flex: 1, height: 1, background: `linear-gradient(90deg,${A}44,transparent)` }} />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {PERKS.map((p, i) => (
-                <M.div key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: .26 + i * .05 }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0,
-                    filter: `drop-shadow(0 0 5px ${A}44)` }}>
-                    <circle cx="12" cy="12" r="11" fill={`${A}22`} stroke={`${A}70`} strokeWidth="1" />
-                    <path d="M7 12.5l3 3 7-7.5" stroke={A} strokeWidth="2.2"
-                      strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  <span style={{ fontFamily: f, fontWeight: 500, fontSize: 12.5,
-                    color: 'rgba(255,255,255,.8)' }}>{p}</span>
-                </M.div>
-              ))}
-            </div>
+            {(() => {
+              const tiles = [
+                { v: live ? `${live.winrate}%` : '…', l: 'винрейт 30д', c: '#34D399' },
+                { v: live ? `${live.roi > 0 ? '+' : ''}${live.roi}%` : '…', l: 'ROI', c: A },
+                { v: live ? String(live.today) : '…', l: 'сигналов сегодня', c: '#F5F3FF' },
+              ]
+              return (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                  {tiles.map((t, i) => (
+                    <div key={i} style={{ borderRadius: 13, padding: '12px 8px', textAlign: 'center',
+                      background: 'linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,.015))',
+                      border: '1px solid rgba(255,255,255,.08)' }}>
+                      <div style={{ fontFamily: f, fontWeight: 900, fontSize: 20, lineHeight: 1,
+                        color: t.c, textShadow: `0 0 14px ${t.c}44` }}>{t.v}</div>
+                      <div style={{ fontFamily: mono, fontSize: 7.5, letterSpacing: '.08em', marginTop: 5,
+                        color: 'rgba(255,255,255,.42)' }}>{t.l}</div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })()}
+            {/* Банкер дня — если есть, отдельной «горячей» строкой */}
+            {live && live.banker != null && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 8,
+                padding: '9px 13px', borderRadius: 12,
+                background: 'rgba(234,179,8,.10)', border: '1px solid rgba(234,179,8,.3)' }}>
+                <span style={{ fontSize: 14 }}>🔥</span>
+                <span style={{ fontFamily: f, fontWeight: 700, fontSize: 12, color: 'rgba(255,255,255,.85)' }}>
+                  Банкер дня уже в сигналах</span>
+                <span style={{ marginLeft: 'auto', fontFamily: f, fontWeight: 900, fontSize: 14,
+                  color: '#EAB308' }}>{live.banker}%</span>
+              </div>
+            )}
+          </M.div>
+
+          {/* Компактные чипы доступа (инфо-плотно, не проповедь-чеклист) */}
+          <M.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: .34 }}
+            style={{ width: '100%', maxWidth: 340, marginBottom: 22, display: 'flex',
+              flexWrap: 'wrap' as const, gap: '6px 6px', justifyContent: 'center' }}>
+            {ACCESS.map((t, i) => (
+              <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 5,
+                padding: '5px 10px', borderRadius: 999, background: `${A}14`, border: `1px solid ${A}33`,
+                fontFamily: mono, fontSize: 9, color: 'rgba(255,255,255,.7)' }}>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none">
+                  <path d="M5 13l4 4 10-11" stroke={A} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>{t}
+              </span>
+            ))}
           </M.div>
 
           <M.button whileTap={{ scale: .97 }} onClick={() => { haptic('medium'); go('home') }}
