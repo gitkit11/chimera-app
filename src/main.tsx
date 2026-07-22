@@ -20,10 +20,36 @@ function updateAppHeight() {
   // Если candidate ≤ 300 — не трогаем --app-height, оставляем последнее корректное значение
 }
 
+// Полноэкранный режим (Bot API 8.0+): Telegram рисует поверх статус-бара и своих
+// кнопок закрытия/сворачивания. Прокидываем их отступы в CSS, чтобы контент не
+// залезал под них. В обычном (expanded) режиме инсеты = 0 → ничего не меняется.
+function updateSafeArea() {
+  try {
+    const sa  = tgAny?.safeAreaInset || {}
+    const csa = tgAny?.contentSafeAreaInset || {}
+    const top    = (sa.top || 0) + (csa.top || 0)
+    const bottom = (sa.bottom || 0) + (csa.bottom || 0)
+    document.documentElement.style.setProperty('--tg-safe-top', `${top}px`)
+    document.documentElement.style.setProperty('--tg-safe-bottom', `${bottom}px`)
+  } catch { /* ignore */ }
+}
+
 if (tg) {
   tg.ready()
   tg.expand()
   try { tgAny.disableVerticalSwipes?.() } catch {}
+
+  // На весь экран, как нативное приложение (только новые клиенты — гейт по версии)
+  try {
+    if (tgAny.isVersionAtLeast?.('8.0') && tgAny.requestFullscreen) {
+      tgAny.requestFullscreen()
+    }
+  } catch { /* старый клиент / десктоп — остаёмся в expanded */ }
+
+  // Слушаем изменения безопасных зон + fullscreen
+  for (const ev of ['safeAreaChanged', 'contentSafeAreaChanged', 'fullscreenChanged']) {
+    try { tgAny.onEvent?.(ev, () => { updateSafeArea(); updateAppHeight() }) } catch {}
+  }
 
   try {
     tgAny.onEvent('viewportChanged', () => {
@@ -32,6 +58,8 @@ if (tg) {
       setTimeout(updateAppHeight, 300)
     })
   } catch {}
+
+  updateSafeArea()
 }
 
 // resize — для браузера
@@ -42,6 +70,7 @@ window.addEventListener('resize', updateAppHeight)
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
     try { tg?.expand() } catch {}
+    updateSafeArea()
     setTimeout(updateAppHeight, 100)
     setTimeout(updateAppHeight, 400)
     setTimeout(updateAppHeight, 900)

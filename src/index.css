@@ -13,10 +13,14 @@
   /* Safe area переменные — работают только с viewport-fit=cover */
   --sat: env(safe-area-inset-top, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
+  /* Инсеты полноэкранного режима Telegram (статус-бар + кнопки закрытия).
+     В обычном режиме = 0 (задаются из main.tsx), поэтому отступы не меняются. */
+  --tg-safe-top: 0px;
+  --tg-safe-bottom: 0px;
   /* Готовые отступы для экранов */
-  --header-top: max(50px, calc(env(safe-area-inset-top, 0px) + 16px));
-  --nav-bottom: calc(22px + env(safe-area-inset-bottom, 0px));
-  --scroll-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  --header-top: max(50px, calc(env(safe-area-inset-top, 0px) + var(--tg-safe-top, 0px) + 16px));
+  --nav-bottom: calc(22px + env(safe-area-inset-bottom, 0px) + var(--tg-safe-bottom, 0px));
+  --scroll-bottom: calc(16px + env(safe-area-inset-bottom, 0px) + var(--tg-safe-bottom, 0px));
 }
 
 * {
