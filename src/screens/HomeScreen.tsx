@@ -192,7 +192,10 @@ export default function HomeScreen() {
             whileTap={{ scale: .97 }}
             onClick={() => { haptic('medium'); go(cat.id) }}
             style={{ position: 'relative', borderRadius: 18, overflow: 'hidden',
-              height: 92, cursor: 'pointer',
+              // Растягиваем карточки на всю высоту (в фуллскрине экран выше —
+              // раньше карточки прижимались вверх, снизу зияла пустота). minHeight
+              // держит их читаемыми на низких экранах (там включается скролл).
+              flex: '1 1 0px', minHeight: 88, maxHeight: 200, cursor: 'pointer',
               background: '#04020D',
               boxShadow: `0 6px 28px ${cat.glow}, inset 0 1px 0 rgba(255,255,255,.07)` }}>
 
@@ -259,7 +262,7 @@ export default function HomeScreen() {
           transition={{ delay: .44, type: 'spring', stiffness: 220 }}
           whileTap={{ scale: .97 }}
           onClick={() => go('home-favorites')}
-          style={{ borderRadius: 18, height: 72, cursor: 'pointer', position: 'relative', overflow: 'hidden',
+          style={{ borderRadius: 18, height: 72, flexShrink: 0, cursor: 'pointer', position: 'relative', overflow: 'hidden',
             display: 'flex', alignItems: 'center', padding: '0 18px 0 16px', gap: 14,
             background: 'linear-gradient(135deg,#0A0800 0%,#120D02 60%,#1A1005 100%)' }}>
           <div style={{ position: 'absolute', inset: 0,
