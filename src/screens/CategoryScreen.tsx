@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { motion, AnimatePresence, useMotionValue, useTransform, animate as animateMV } from 'framer-motion'
 import { useFunnel } from '../store/funnel'
 import { haptic } from '../haptic'
@@ -82,10 +82,21 @@ function cardKey(c: Card): string {
 // «8 июл · 10:00» для матчей НЕ сегодняшнего дня, иначе просто «10:00».
 // Без даты завтрашние матчи выглядят сегодняшними — юзер ждёт результат,
 // которого ещё не может быть.
+// Метка «сегодня» считается раз в минуту, а не на каждую карточку при каждом
+// рендере (toLocaleDateString — дорогой вызов, N карточек × каждый рендер).
+let _todayLbl = ''
+let _todayTs = 0
+function todayLabel(): string {
+  const now = Date.now()
+  if (now - _todayTs > 60_000) {
+    _todayLbl = new Date().toLocaleDateString('ru', { day: 'numeric', month: 'short' })
+    _todayTs = now
+  }
+  return _todayLbl
+}
 function dateTimeLabel(c: Card): string {
   if (!c.date || c.date === '—' || !c.time || c.time === '—') return c.time
-  const today = new Date().toLocaleDateString('ru', { day: 'numeric', month: 'short' })
-  return c.date === today ? c.time : `${c.date} · ${c.time}`
+  return c.date === todayLabel() ? c.time : `${c.date} · ${c.time}`
 }
 
 // Кастомные золотые иконки вместо системных эмодзи 🏦 / 👑
@@ -584,6 +595,7 @@ export default function CategoryScreen() {
   // Инициализируем из модульного кэша → при возврате в категорию данные видны
   // мгновенно, без мелькания «Нет сигналов» на перемонтировании.
   const [liveCards, setLiveCards] = useState<Record<string, Card[]> | null>(_cardsCache)
+  const [favMsg, setFavMsg] = useState<string | null>(null)  // тост избранного
   const [serverFavs, setServerFavs] = useState<Card[]>(_favsCache ?? [])
   // Бесплатная ставка воронки. В меню «Сигналы» у non-PRO показываем ИМЕННО тот
   // матч, что юзер взял — пока он не сыгран. Как только пришёл результат
@@ -677,44 +689,69 @@ export default function CategoryScreen() {
   const isLoading = liveCards === null
   // Демо-карточки (ALL_CARDS) в выдачу НЕ подмешиваются — только живые данные
   const CARDS = isLoading ? {} : liveCards
-  let cards: Card[]
-  if (isLoading) {
-    cards = []
-  } else if (screen==='home-favorites') {
-    // Избранное = серверные (истина) + локально добавленные, ещё не пришедшие
-    // с сервера. Идентичность — КЛЮЧ МАТЧА (cardKey), а НЕ позиционный c.id:
-    // иначе один sig_00N цепляет одноимённые карточки из всех категорий →
-    // флуд и дубли React-ключей → краш/тёмный экран. Дедупим по ключу.
-    const seen = new Set(serverFavs.map(sf => cardKey(sf)))
-    const local: Card[] = []
-    for (const c of Object.values(CARDS).flat()) {
-      const k = cardKey(c)
-      if (favorites.includes(k) && !seen.has(k)) { seen.add(k); local.push(c) }
+  // useMemo: список карточек пересобирался на КАЖДЫЙ рендер (в т.ч. на каждый
+  // тост/открытие карточки) — Set + flat() + includes по всем категориям.
+  const favSet = useMemo(() => new Set(favorites), [favorites])
+  const cards: Card[] = useMemo(() => {
+    if (isLoading) return []
+    if (screen==='home-favorites') {
+      // Избранное = серверные (истина) + локально добавленные, ещё не пришедшие
+      // с сервера. Идентичность — КЛЮЧ МАТЧА (cardKey), а НЕ позиционный c.id:
+      // иначе один sig_00N цепляет одноимённые карточки из всех категорий →
+      // флуд и дубли React-ключей → краш/тёмный экран. Дедупим по ключу.
+      const seen = new Set(serverFavs.map(sf => cardKey(sf)))
+      const local: Card[] = []
+      for (const c of Object.values(CARDS).flat()) {
+        const k = cardKey(c)
+        if (favSet.has(k) && !seen.has(k)) { seen.add(k); local.push(c) }
+      }
+      return [...serverFavs, ...local]
     }
-    cards = [...serverFavs, ...local]
-  } else if (screen === 'home-signals' && freeSigShown && funnelSig) {
-    // non-PRO: первой карточкой — взятый (или доступный) бесплатный сигнал.
-    // Остальной фид под замком. Дедупим, чтобы тот же матч не задвоился.
-    const base = CARDS['home-signals'] || []
-    const fc = mapFunnelToCard(funnelSig)
-    const dupK = `${fc.sport}:${fc.home}:${fc.away}`
-    cards = [fc, ...base.filter(c => `${c.sport}:${c.home}:${c.away}` !== dupK)]
-  } else {
-    cards = CARDS[screen] || []
-  }
+    if (screen === 'home-signals' && freeSigShown && funnelSig) {
+      // non-PRO: первой карточкой — взятый (или доступный) бесплатный сигнал.
+      // Остальной фид под замком. Дедупим, чтобы тот же матч не задвоился.
+      const base = CARDS['home-signals'] || []
+      const fc = mapFunnelToCard(funnelSig)
+      const dupK = `${fc.sport}:${fc.home}:${fc.away}`
+      return [fc, ...base.filter(c => `${c.sport}:${c.home}:${c.away}` !== dupK)]
+    }
+    return CARDS[screen] || []
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, liveCards, screen, serverFavs, favSet, freeSigShown, funnelSig])
 
-  const toggleFav = (c: Card, e?: React.MouseEvent) => {
+  const toggleFav = async (c: Card, e?: React.MouseEvent) => {
     e?.stopPropagation()
     const k = cardKey(c)
-    favorites.includes(k) ? removeFavorite(k) : addFavorite(k)
-    // Сервер: включает уведомление об исходе в Telegram-боте.
-    // Fire-and-forget: локальный стор работает даже если API недоступен.
-    if (c.cardType === 'express') {
-      if (c.legsHash)
-        api.toggleFavoriteExpress(c.legsHash, c.expressLabel ?? '',
-          Number(c.odds) || 0, c.expressLegsRaw ?? []).catch(() => {})
-    } else if (c.away) {
-      api.toggleFavorite(c.sport, c.home, c.away).catch(() => {})
+    const wasFav = favorites.includes(k)
+    // Оптимистично меняем локально
+    wasFav ? removeFavorite(k) : addFavorite(k)
+    haptic('light')
+    // Подтверждение показываем СРАЗУ (оптимистично), не дожидаясь сервера:
+    // ответ приходил ~1 с спустя и перерисовывал весь список посреди свайпа.
+    if (!wasFav) { setFavMsg('★ Добавлено в избранное'); setTimeout(() => setFavMsg(null), 2000) }
+    // Сервер: сохраняет избранное и включает пуш об исходе в боте. ВАЖНО:
+    // проверяем ответ — если не сохранилось, откатываем звезду и говорим юзеру
+    // (раньше .catch(()=>{}) молча глотал ошибку → звезда горит, а на сервере
+    // пусто → пуш никогда не приходил).
+    try {
+      let ok = true
+      if (c.cardType === 'express') {
+        if (c.legsHash) {
+          const r: any = await api.toggleFavoriteExpress(c.legsHash, c.expressLabel ?? '',
+            Number(c.odds) || 0, c.expressLegsRaw ?? [])
+          ok = r?.ok !== false
+        }
+      } else if (c.away) {
+        const r: any = await api.toggleFavorite(c.sport, c.home, c.away)
+        ok = r?.ok !== false
+      }
+      if (!ok) throw new Error('save failed')
+    } catch {
+      // откат локального состояния + честное сообщение
+      wasFav ? addFavorite(k) : removeFavorite(k)
+      haptic('heavy')
+      setFavMsg('⚠ Не сохранилось, попробуй ещё раз')
+      setTimeout(() => setFavMsg(null), 2800)
     }
   }
   // Удаление из избранного (крестик на карточке во вкладке «Избранное»):
@@ -1258,6 +1295,21 @@ export default function CategoryScreen() {
     <M.div initial={{opacity:0,x:40}} animate={{opacity:1,x:0}} exit={{opacity:0,transition:{duration:.1}}} transition={{duration:.28}}
       style={{ height:'100%',display:'flex',flexDirection:'column',background:'#04020D',overflow:'hidden',position:'relative' }}>
 
+      {/* Тост избранного (подтверждение/ошибка сохранения) */}
+      {favMsg && (
+        <M.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}}
+          style={{ position:'absolute', left:'50%', transform:'translateX(-50%)',
+            bottom:'calc(env(safe-area-inset-bottom,0px) + 92px)', zIndex:130,
+            width:'max-content', maxWidth:'90vw', padding:'11px 18px', borderRadius:12,
+            whiteSpace:'normal' as const, wordBreak:'break-word' as const, lineHeight:1.4,
+            background: favMsg.startsWith('⚠') ? 'rgba(60,10,10,.97)' : 'rgba(22,10,42,.97)',
+            border:`1px solid ${favMsg.startsWith('⚠') ? 'rgba(248,113,113,.55)' : 'rgba(167,139,250,.5)'}`,
+            color:'#F5F3FF', fontFamily:mono, fontSize:12, fontWeight:600, textAlign:'center',
+            boxShadow:'0 8px 30px rgba(0,0,0,.55)' }}>
+          {favMsg}
+        </M.div>
+      )}
+
       {/* Header */}
       <div style={{ flexShrink:0,padding:'var(--header-top) 20px 14px' }}>
         <div style={{ display:'flex',alignItems:'center',gap:12,marginBottom:4 }}>
@@ -1303,16 +1355,20 @@ export default function CategoryScreen() {
               // карточкой (см. вычисление cards) → freeIdx=0. Сыграл/не показываем
               // → -1, весь фид под замком до PRO.
               const freeIdx = (screen === 'home-signals' && freeSigShown) ? 0 : -1
-              const isFav      = favorites.includes(cardKey(c))
+              const isFav      = favSet.has(cardKey(c))
               const isWeek     = c.cardType==='week'
               const isExpress  = c.cardType==='express'
               // non-PRO locked (paywall): show lock icon
               const isLocked   = !isPro && (screen === 'home-signals' ? i !== freeIdx : true)
               const _ck = cardKey(c)
+              // Избранное — уже выбранный юзером контент, показываем СРАЗУ
+              // раскрытым (не «закрытым/затемнённым»). isProClosed только вне
+              // экрана избранного — там тап раскрывает карточку.
+              const _isFavScreen = screen === 'home-favorites'
               // PRO: card not yet expanded in list (dark/closed, no lock)
-              const isProClosed   = isPro && !expandedCardIds.includes(_ck)
+              const isProClosed   = isPro && !_isFavScreen && !expandedCardIds.includes(_ck)
               // PRO: card expanded in list (glow + full info + СМОТРЕТЬ)
-              const isProExpanded = isPro && expandedCardIds.includes(_ck)
+              const isProExpanded = isPro && (_isFavScreen || expandedCardIds.includes(_ck))
               // any mode: card was opened (button shows СМОТРЕТЬ + ↗)
               const isOpened = isProExpanded || viewedCardIds.includes(_ck)
               const cardH = isWeek ? 190 : isExpress ? 132 : 118
@@ -1467,7 +1523,8 @@ export default function CategoryScreen() {
                   {/* Week animated gold border */}
                   {isWeek && (
                     <div style={{ position:'absolute',inset:0,borderRadius:20,pointerEvents:'none',
-                      animation:'week-glow 2.4s ease-in-out infinite' }}/>
+                      boxShadow:'inset 0 0 0 1.5px rgba(234,179,8,.8),0 0 35px rgba(234,179,8,.35)',
+                      willChange:'opacity',animation:'week-pulse 2.4s ease-in-out infinite' }}/>
                   )}
 
                   {/* Rarity (non-week, hide when БЕСПЛАТНО badge is showing) */}
@@ -1493,12 +1550,12 @@ export default function CategoryScreen() {
                   <M.button whileTap={{scale:.82}} onClick={(e: React.MouseEvent)=>toggleFav(c,e)}
                     style={{ position:'absolute',top:8,right:10,zIndex:5,
                       width:32,height:32,borderRadius:9,cursor:'pointer',
-                      background:isFav?'rgba(255,215,0,.22)':'rgba(0,0,0,.42)',
-                      backdropFilter:'blur(6px)' as any,
+                      background:isFav?'rgba(255,215,0,.22)':'rgba(0,0,0,.55)',
                       border:isFav?'1px solid rgba(255,215,0,.45)':'1px solid rgba(255,255,255,.14)' as any,
                       display:'flex',alignItems:'center',justifyContent:'center',
                       fontSize:15,color:isFav?'#FFD700':'rgba(255,255,255,.65)',
-                      boxShadow:isFav?'0 0 14px rgba(255,215,0,.45)':'none',transition:'all .2s' }}>
+                      boxShadow:isFav?'0 0 14px rgba(255,215,0,.45)':'none',
+                      transition:'background .2s, color .2s, box-shadow .2s' }}>
                     {isFav?'★':'☆'}
                   </M.button>
 

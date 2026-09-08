@@ -55,22 +55,32 @@ body {
   background: var(--bg);
 }
 
-/* GPU-friendly glow animations через opacity вместо boxShadow */
-@keyframes glow-violet {
-  0%,100% { box-shadow: 0 0 0px rgba(139,92,246,0); }
-  50%      { box-shadow: 0 0 14px rgba(139,92,246,.5); }
+/* GPU-friendly glow: тень статична на псевдо-элементе, анимируется ТОЛЬКО
+   opacity (компонуется на GPU). 09.09.2026: раньше анимировался сам box-shadow
+   на каждой карточке → полная перерисовка каждого кадра у всех карточек
+   одновременно → лаги списка и свайпа в WebView Telegram. */
+@keyframes glow-fade {
+  0%,100% { opacity: 0; }
+  50%      { opacity: 1; }
 }
-@keyframes glow-lavender {
-  0%,100% { box-shadow: 0 0 0px rgba(167,139,250,0); }
-  50%      { box-shadow: 0 0 14px rgba(167,139,250,.45); }
+.glow-violet, .glow-lavender, .glow-orange { position: relative; }
+.glow-violet::before, .glow-lavender::before, .glow-orange::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  will-change: opacity;
+  animation: glow-fade 2s ease-in-out infinite;
 }
-@keyframes glow-orange {
-  0%,100% { box-shadow: 0 0 0px rgba(249,115,22,0); }
-  50%      { box-shadow: 0 0 14px rgba(249,115,22,.5); }
+.glow-violet::before   { box-shadow: 0 0 14px rgba(139,92,246,.5); }
+.glow-lavender::before { box-shadow: 0 0 14px rgba(167,139,250,.45); }
+.glow-orange::before   { box-shadow: 0 0 14px rgba(249,115,22,.5); }
+@keyframes week-pulse {
+  0%,100% { opacity: .45; }
+  50%      { opacity: 1; }
 }
-.glow-violet  { animation: glow-violet  2s ease-in-out infinite; }
-.glow-lavender{ animation: glow-lavender 2s ease-in-out infinite; }
-.glow-orange  { animation: glow-orange  2s ease-in-out infinite; }
 
 /* Paywall keyframes — в глобальном CSS чтобы работали при повторных заходах */
 @keyframes pw-spin    { to { transform: translate(-50%,-50%) rotate(360deg) } }
