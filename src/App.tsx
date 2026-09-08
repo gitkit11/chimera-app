@@ -304,9 +304,21 @@ export default function App() {
   useEffect(() => {
     const DEEP: Screen[] = ['home-signals', 'home-express', 'home-totals',
       'home-week', 'home-favorites', 'profile', 'support', 'support-chat']
+    const FUNNEL_SCREENS: Screen[] = ['cover', 'stake-select', 'card-reveal',
+      'signal-cards', 'paywall', 'verify', 'stawki-steps']
     const goHomeIfDeep = () => {
       const cur = useFunnel.getState().screen
       if (DEEP.includes(cur)) useFunnel.getState().go('home')
+      // 08.09.2026: Telegram держит апп в памяти → статус Pro, выданный ПОСЛЕ
+      // открытия, не подхватывался, и подписчик продолжал видеть воронку.
+      // При каждом возврате перепроверяем /api/user: Pro → с воронки на главное.
+      api.user().then(u => {
+        const st = useFunnel.getState()
+        st.setPro(u.isPro)
+        st.setProDaysLeft(u.daysLeft)
+        st.setProInfo(u.plan ?? 'full', u.until ?? null)
+        if (u.isPro && FUNNEL_SCREENS.includes(useFunnel.getState().screen)) st.go('home')
+      }).catch(() => {})
     }
     // 1) стандартное событие: вкладка снова видима
     const onVis = () => { if (document.visibilityState === 'visible') goHomeIfDeep() }
