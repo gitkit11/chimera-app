@@ -658,6 +658,7 @@ export default function CategoryScreen() {
       if (expR.status === 'fulfilled') { upd['home-express'] = expR.value.map(mapExpress); okCount++ }
       if (totR.status === 'fulfilled') { upd['home-totals'] = totR.value.map(s => mapSignal(s, 'total')); okCount++ }
       if (wkR.status === 'fulfilled') { upd['home-week'] = (wkR.value && wkR.value.team1) ? [mapSignal(wkR.value, 'week')] : []; okCount++ }
+      if (okCount < 4) api.track('fetch-fail')  // диагностика: видно в /users бота
       if (okCount === 0) {
         // сеть ещё не проснулась — кэш не трогаем, пробуем ещё дважды
         if (!_cardsCache) setLiveCards({})
@@ -760,6 +761,12 @@ export default function CategoryScreen() {
     return CARDS[screen] || []
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, liveCards, screen, serverFavs, favSet, freeSigShown, funnelSig])
+
+  // Диагностика «ничего не вижу»: категория отрисовалась ПУСТОЙ после загрузки
+  useEffect(() => {
+    if (!isLoading && cards.length === 0 && screen !== 'home-favorites') api.track('cards-empty')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, screen, cards.length])
 
   const toggleFav = async (c: Card, e?: React.MouseEvent) => {
     e?.stopPropagation()
