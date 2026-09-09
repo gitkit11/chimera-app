@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useLayoutEffect } from 'react'
 import { motion, AnimatePresence, useMotionValue, useTransform, animate as animateMV } from 'framer-motion'
 import { useFunnel } from '../store/funnel'
 import { haptic } from '../haptic'
@@ -591,6 +591,16 @@ export default function CategoryScreen() {
   const markViewed         = useFunnel(s=>s.markViewed)
   const setCardOpen        = useFunnel(s=>s.setCardOpen)
   const [openCard, setOpenCard] = useState<Card|null>(null)
+  // 09.09.2026 (владелец: «зашёл в десятую карточку, вышел — листаешь с начала»):
+  // детальный экран заменяет список целиком, список перемонтируется с нуля.
+  // Запоминаем прокрутку при открытии и возвращаем её при закрытии.
+  const listRef = useRef<HTMLDivElement>(null)
+  const savedScroll = useRef(0)
+  useLayoutEffect(() => {
+    if (!openCard && listRef.current && savedScroll.current > 0) {
+      listRef.current.scrollTop = savedScroll.current
+    }
+  }, [openCard])
   const [flipped,  setFlipped]  = useState(false)
   // Инициализируем из модульного кэша → при возврате в категорию данные видны
   // мгновенно, без мелькания «Нет сигналов» на перемонтировании.
@@ -808,6 +818,7 @@ export default function CategoryScreen() {
     }
   }
   const openDetail = (c: Card) => {
+    savedScroll.current = listRef.current?.scrollTop ?? 0
     markViewed(cardKey(c))
     setFlipped(false)
     setOpenCard(c)
@@ -1359,7 +1370,7 @@ export default function CategoryScreen() {
       </div>
 
       {/* Cards */}
-      <div style={{ flex:1,overflowY:'auto',padding:'0 20px var(--scroll-bottom)',scrollbarWidth:'none' as const }}>
+      <div ref={listRef} style={{ flex:1,overflowY:'auto',padding:'0 20px var(--scroll-bottom)',scrollbarWidth:'none' as const }}>
         {isLoading ? (
           <div style={{ display:'flex',flexDirection:'column',gap:10,paddingTop:4 }}>
             {[0,1,2].map(i=>(
