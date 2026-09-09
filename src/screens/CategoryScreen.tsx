@@ -622,30 +622,62 @@ export default function CategoryScreen() {
   // просто доступная бесплатная ставка.
   const freeSigShown = !isPro && !!funnelSig && !!funnelSig.sport && !funnelSig.result
 
-  useEffect(() => {
+  // Загрузка карточек. 09.09.2026 (владелец: «вышел в Instagram, вернулся —
+  // все сигналы пропали, "Нет сигналов", надо перезаходить»): при возврате из
+  // фона WebView обрывает первые запросы → раньше упавшая категория
+  // записывалась ПУСТОЙ поверх кэша (и в localStorage) → пусто до перезахода.
+  // Теперь: упавший запрос НЕ трогает прошлые карточки; при возврате в
+  // приложение перезапрашиваем с паузой и повтором.
+  const loadCards = (attempt = 0) => {
     Promise.allSettled([
       api.botSignals(),
       api.botExpress(),
       api.botTotals(),
       api.botWeek(),
     ]).then(([sigR, expR, totR, wkR]) => {
-      // Пустой ответ = честный пустой экран. Раньше стояло `.length > 0`,
-      // и при пустоте/ошибке подмешивались захардкоженные демо-карточки.
+      const prev = _cardsCache || {}
       const upd: Record<string, Card[]> = {
-        'home-signals': [], 'home-express': [], 'home-totals': [], 'home-week': [],
+        'home-signals': prev['home-signals'] || [],
+        'home-express': prev['home-express'] || [],
+        'home-totals':  prev['home-totals']  || [],
+        'home-week':    prev['home-week']    || [],
       }
-      if (sigR.status === 'fulfilled')
-        upd['home-signals'] = sigR.value.map(s => mapSignal(s, 'signal'))
-      if (expR.status === 'fulfilled')
-        upd['home-express'] = expR.value.map(mapExpress)
-      if (totR.status === 'fulfilled')
-        upd['home-totals'] = totR.value.map(s => mapSignal(s, 'total'))
-      if (wkR.status === 'fulfilled' && wkR.value && wkR.value.team1)
-        upd['home-week'] = [mapSignal(wkR.value, 'week')]
+      let okCount = 0
+      // Пустой УСПЕШНЫЙ ответ = честный пустой экран (демо-карточки не подмешиваем).
+      if (sigR.status === 'fulfilled') { upd['home-signals'] = sigR.value.map(s => mapSignal(s, 'signal')); okCount++ }
+      if (expR.status === 'fulfilled') { upd['home-express'] = expR.value.map(mapExpress); okCount++ }
+      if (totR.status === 'fulfilled') { upd['home-totals'] = totR.value.map(s => mapSignal(s, 'total')); okCount++ }
+      if (wkR.status === 'fulfilled') { upd['home-week'] = (wkR.value && wkR.value.team1) ? [mapSignal(wkR.value, 'week')] : []; okCount++ }
+      if (okCount === 0) {
+        // сеть ещё не проснулась — кэш не трогаем, пробуем ещё дважды
+        if (!_cardsCache) setLiveCards({})
+        if (attempt < 2) setTimeout(() => loadCards(attempt + 1), attempt === 0 ? 1500 : 4000)
+        return
+      }
       _cardsCache = upd
       try { localStorage.setItem(LS_CARDS, JSON.stringify(upd)) } catch { /* ignore */ }
       setLiveCards(upd)
+      if (okCount < 4 && attempt < 2) setTimeout(() => loadCards(attempt + 1), 2500)
     }).catch(() => { if (!_cardsCache) setLiveCards({}) })
+  }
+  useEffect(() => {
+    loadCards()
+    // Возврат из фона (Instagram и т.п.): даём WebView 600 мс проснуться и обновляем
+    let t: ReturnType<typeof setTimeout> | null = null
+    const onBack = () => {
+      if (document.visibilityState !== 'visible') return
+      if (t) clearTimeout(t)
+      t = setTimeout(() => loadCards(), 600)
+    }
+    document.addEventListener('visibilitychange', onBack)
+    const tg = (window as any).Telegram?.WebApp
+    try { tg?.onEvent?.('activated', onBack) } catch { /* нет поддержки */ }
+    return () => {
+      if (t) clearTimeout(t)
+      document.removeEventListener('visibilitychange', onBack)
+      try { tg?.offEvent?.('activated', onBack) } catch { /* ignore */ }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Серверное избранное (с исходами за 12ч) — подгружаем при входе на вкладку
