@@ -15,7 +15,7 @@ const GOLD      = '#E8B84B'
 const GOLD_DIM  = 'rgba(232,184,75,.12)'
 const GOLD_LINE = 'rgba(232,184,75,.28)'
 const STAWKI_URL  = 'https://chimera-ai.tech/go'
-const MANAGER_URL = 'https://t.me/chimera_manager'
+const MANAGER_URL = `https://t.me/pankotsk1?text=${encodeURIComponent('Здравствуйте! Нужна помощь с активацией Chimera AI 🙌')}`
 
 // ── Step dots ─────────────────────────────────────────────────────────────────
 function StepDots({ current }: { current: number }) {
@@ -497,6 +497,7 @@ export default function StawkiSteps() {
 
         {/* Help */}
         <a href={MANAGER_URL} target="_blank" rel="noreferrer"
+          onClick={(e: any) => { const tg = (window as any).Telegram?.WebApp; if (tg?.openTelegramLink) { e.preventDefault(); tg.openTelegramLink(MANAGER_URL) } }}
           style={{ display: 'flex', alignItems: 'center', gap: 12,
             padding: '12px 16px', borderRadius: 14, textDecoration: 'none',
             background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.1)' }}>

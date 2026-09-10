@@ -16,10 +16,6 @@ import expressMenuIcon from '../assets/menu/express.svg'
 import totalsMenuIcon  from '../assets/menu/totals.svg'
 import weekMenuIcon    from '../assets/menu/week.svg'
 import favMenuIcon     from '../assets/menu/favorites.svg'
-import lionIcon   from '../assets/agents/lion.svg'
-import goatIcon   from '../assets/agents/goat.svg'
-import snakeIcon  from '../assets/agents/snake.svg'
-import shadowIcon from '../assets/agents/shadow.svg'
 import speed210Bg  from '../assets/bg/speed_210.png'
 import speed280Bg  from '../assets/bg/speed_280.png'
 import speed340Bg  from '../assets/bg/speed_340.png'
@@ -28,7 +24,8 @@ import football2Bg from '../assets/bg/football2.jpg'
 import basketballBg from '../assets/bg/basketball.jpg'
 import tennisBg    from '../assets/bg/tennis.jpg'
 import esportsBg   from '../assets/bg/esports.jpg'
-import { api, type ApiSignal, type ApiExpress, type ApiFavorite, type FunnelSignal } from '../api'
+import { api, type ApiSignal, type ApiExpress, type ApiFavorite, type FunnelSignal, type ApiAnalysis } from '../api'
+import AnalysisBack from '../components/AnalysisBack'
 
 const M = motion as any
 const f    = "'Clash Display','Unbounded',sans-serif"
@@ -50,12 +47,6 @@ const RARITY = {
 } as const
 type RarityKey = keyof typeof RARITY
 
-const AGENTS_META = [
-  { role: 'ST', name: 'Статистик', icon: lionIcon,  accent: '#F59E0B' },
-  { role: 'SC', name: 'Скаут',     icon: goatIcon,  accent: '#94A3B8' },
-  { role: 'AR', name: 'Арбитр',    icon: snakeIcon, accent: '#10B981', verdict: true },
-  { role: 'SH', name: 'Shadow',    icon: shadowIcon, accent: '#60A5FA' },
-]
 
 // Кэш карточек и избранного. Держим и в модуле (мгновенно при смене вкладок),
 // и в localStorage — чтобы после ПОЛНОГО перезапуска приложения список
@@ -168,6 +159,7 @@ type Card = {
   expressLegsRaw?: ApiExpress['legs']  // сырые ноги для повторной отправки на сервер
   expressLabel?: string     // «Надёжный ×2» и т.п.
   h2h?: ApiSignal['h2h']    // личные встречи пары
+  analysis?: ApiAnalysis | null  // «Разбор» обратной стороны
 }
 
 const SPORT_BG: Record<string, string> = {
@@ -185,7 +177,7 @@ function mapSignal(s: ApiSignal, cardType: 'signal' | 'total' | 'week'): Card {
   const dt    = new Date(s.matchTime)
   const ok    = !isNaN(dt.getTime())
   return {
-    id: s.id, cardType, sport: s.sport, h2h: s.h2h ?? null,
+    id: s.id, cardType, sport: s.sport, h2h: s.h2h ?? null, analysis: s.analysis ?? null,
     tag: s.league, home: s.team1, away: s.team2,
     rec: s.prediction,
     odds: String(s.odds),
@@ -1185,13 +1177,6 @@ export default function CategoryScreen() {
             <div style={{ position:'absolute',top:'20%',left:'50%',transform:'translateX(-50%)',
               width:220,height:220,borderRadius:'50%',
               background:`radial-gradient(circle,${accent}1a 0%,transparent 70%)`,pointerEvents:'none' }}/>
-            {/* Faded heads */}
-            <div style={{ position:'absolute',top:'4%',left:0,right:0,
-              display:'flex',justifyContent:'center',opacity:.09,pointerEvents:'none' }}>
-              <img src={lionIcon} width={120} height={120} alt="" style={{ marginRight:-14 }}/>
-              <img src={goatIcon} width={120} height={120} alt="" style={{ marginTop:-10 }}/>
-              <img src={snakeIcon} width={120} height={120} alt="" style={{ marginLeft:-14 }}/>
-            </div>
             {/* Top bar */}
             <div style={{ position:'absolute',top:0,left:0,right:0,zIndex:10,
               display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 16px 0' }}>
@@ -1208,108 +1193,32 @@ export default function CategoryScreen() {
               </div>
             </div>
 
-            {/* Oracle scroll */}
+            {/* Разбор (10.09.2026): вместо «трёх агентов с галочками» — логика ставки */}
             <div style={{ position:'absolute',inset:0,overflowY:'auto',scrollbarWidth:'none' as const,
-              display:'flex',flexDirection:'column',alignItems:'center',padding:'80px 22px 108px',gap:0 }}>
-
-              {/* Score ring */}
-              <M.div initial={{scale:.7,opacity:0}} animate={{scale:1,opacity:1}} transition={{delay:.1,type:'spring',stiffness:140}}>
-                <svg width="130" height="130" viewBox="0 0 130 130" style={{ overflow:'visible' }}>
-                  <defs>
-                    <linearGradient id={`arc-${c.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor={isWeek?'#92400e':isExpress?'#7c2d12':isTotal?'#064e3b':'#7C3AED'}/>
-                      <stop offset="100%" stopColor={accent}/>
-                    </linearGradient>
-                    <filter id={`glow-${c.id}`}><feDropShadow dx="0" dy="0" stdDeviation="4" floodColor={accent} floodOpacity="0.7"/></filter>
-                  </defs>
-                  <circle cx="65" cy="65" r="52" fill="none" stroke="rgba(255,255,255,.07)" strokeWidth="6"/>
-                  <circle cx="65" cy="65" r="52" fill="none" stroke={`url(#arc-${c.id})`} strokeWidth="6"
-                    strokeDasharray={`${(c.score/100)*327} 327`} strokeLinecap="round"
-                    transform="rotate(-90 65 65)" filter={`url(#glow-${c.id})`}/>
-                  <circle cx="65" cy="65" r="40" fill={`${accent}0a`}/>
-                  <text x="65" y="60" textAnchor="middle" fontFamily="'Clash Display','Unbounded',sans-serif"
-                    fontSize="34" fontWeight="900" fill="white">{c.score}</text>
-                  <text x="65" y="76" textAnchor="middle" fontFamily="monospace" fontSize="9"
-                    fill="rgba(255,255,255,.3)" letterSpacing="1">/100</text>
-                  <text x="65" y="90" textAnchor="middle" fontFamily="monospace" fontSize="7"
-                    fontWeight="700" fill={`${accent}88`} letterSpacing="2">CHIMERA SCORE</text>
-                </svg>
-              </M.div>
-
-              {/* Agents row */}
-              <M.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{delay:.3}}
-                style={{ display:'flex',alignItems:'center',justifyContent:'center',gap:14,marginTop:10,marginBottom:20 }}>
-                {AGENTS_META.map((a,i)=>(
-                  <div key={i} style={{ display:'flex',flexDirection:'column',alignItems:'center',gap:5 }}>
-                    <div style={{ position:'relative' }}>
-                      <img src={a.icon} width={40} height={40} alt=""
-                        style={{ borderRadius:10,boxShadow:`0 0 12px ${a.accent}66` }}/>
-                      <div style={{ position:'absolute',bottom:-3,right:-3,width:13,height:13,borderRadius:'50%',
-                        background:'#10B981',border:'2px solid #04020D',
-                        display:'flex',alignItems:'center',justifyContent:'center',fontSize:7,color:'white',fontWeight:900 }}>✓</div>
+              padding:'76px 18px 108px' }}>
+              {c.analysis ? (
+                <AnalysisBack a={c.analysis} accent={accent} home={c.home} away={c.away} />
+              ) : (
+                <div style={{ display:'grid',gap:10 }}>
+                  {isExpress && c.legs && (
+                    <div style={{ padding:'12px 14px',borderRadius:12,background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)' }}>
+                      <div style={{ fontFamily:mono,fontSize:9,letterSpacing:'.2em',textTransform:'uppercase' as const,color:`${accent}cc`,marginBottom:8 }}>Состав</div>
+                      {c.legs.map((leg,li)=>(
+                        <div key={li} style={{ display:'flex',justifyContent:'space-between',gap:8,fontFamily:mono,fontSize:10.5,color:'rgba(255,255,255,.8)',padding:'4px 0' }}>
+                          <span style={{ overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' as const }}>{leg.match}</span>
+                          <span style={{ flexShrink:0,color:leg.color,fontWeight:700 }}>{leg.pick} ×{leg.odds}</span>
+                        </div>
+                      ))}
                     </div>
-                    <span style={{ fontFamily:mono,fontSize:7.5,color:`${a.accent}99`,letterSpacing:'.05em' }}>{a.name}</span>
+                  )}
+                  <div style={{ padding:'12px 14px',borderRadius:12,background:`${accent}12`,border:`1px solid ${accent}44`,fontFamily:f,fontSize:13.5,lineHeight:1.5,color:'rgba(255,255,255,.88)' }}>
+                    {isExpress ? (c.altBet.note && c.altBet.note !== '—' ? c.altBet.note : c.agentTexts[2]) : c.agentTexts[2]}
                   </div>
-                ))}
-              </M.div>
-
-              <div style={{ width:'100%',height:2,background:`linear-gradient(90deg,transparent,${accent}88 30%,${accent} 50%,${accent}88 70%,transparent)`,marginBottom:18,borderRadius:1 }}/>
-
-              {/* Verdict */}
-              <M.div initial={{opacity:0}} animate={{opacity:1}} transition={{delay:.45}}
-                style={{ width:'100%',textAlign:'center',marginBottom:16 }}>
-                <div style={{ fontFamily:mono,fontSize:8,fontWeight:700,letterSpacing:'.3em',textTransform:'uppercase' as const,
-                  color:`${accent}88`,marginBottom:8 }}>Вердикт арбитра</div>
-                <div style={{ fontFamily:f,fontWeight:700,fontSize:15,lineHeight:1.45,color:'#FAFAF8' }}>{c.agentTexts[2]}</div>
-              </M.div>
-
-              {/* Agent cards */}
-              {AGENTS_META.slice(0,3).map((a,i)=>(
-                <M.div key={i} initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{delay:.35+i*.08}}
-                  style={{ width:'100%',marginBottom:8,padding:'11px 14px',borderRadius:13,
-                    background:a.verdict?`${accent}22`:'rgba(255,255,255,.07)',
-                    border:`1px solid ${a.verdict?`${accent}55`:'rgba(255,255,255,.1)'}` }}>
-                  <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:6 }}>
-                    <img src={a.icon} width={32} height={32} alt="" style={{ borderRadius:8,flexShrink:0 }}/>
-                    <div>
-                      <div style={{ fontFamily:f,fontWeight:700,fontSize:12 }}>{a.name}</div>
-                      <div style={{ fontFamily:mono,fontSize:8,color:a.accent,letterSpacing:'.1em' }}>{a.role} Agent</div>
-                    </div>
-                  </div>
-                  <div style={{ fontFamily:mono,fontSize:10,color:'rgba(255,255,255,.65)',lineHeight:1.5 }}>{c.agentTexts[i]}</div>
-                </M.div>
-              ))}
-
-              {/* Shadow */}
-              <M.div initial={{opacity:0}} animate={{opacity:1}} transition={{delay:.58}}
-                style={{ width:'100%',padding:'9px 13px',borderRadius:11,borderLeft:'2px solid rgba(96,165,250,.45)',
-                  background:'rgba(59,130,246,.06)',marginBottom:12 }}>
-                <div style={{ fontFamily:mono,fontSize:7.5,color:'rgba(96,165,250,.65)',letterSpacing:'.18em',
-                  textTransform:'uppercase' as const,marginBottom:4 }}>Shadow · Llama 70B</div>
-                <div style={{ fontFamily:mono,fontSize:10,color:'rgba(255,255,255,.58)',lineHeight:1.5 }}>{c.shadow}</div>
-              </M.div>
-
-              {/* Alt bet */}
-              <M.div initial={{opacity:0,y:6}} animate={{opacity:1,y:0}} transition={{delay:.68}}
-                style={{ width:'100%',padding:'9px 14px',borderRadius:11,
-                  background:'rgba(16,185,129,.09)',border:'1px solid rgba(52,211,153,.25)',
-                  display:'flex',alignItems:'center',justifyContent:'space-between' }}>
-                <div>
-                  <div style={{ fontFamily:mono,fontSize:7,letterSpacing:'.2em',textTransform:'uppercase' as const,
-                    color:'rgba(52,211,153,.55)',marginBottom:3 }}>Альт. ставка</div>
-                  <div style={{ fontFamily:f,fontWeight:900,fontSize:16,color:'#34D399' }}>{c.altBet.rec}</div>
-                  <div style={{ fontFamily:mono,fontSize:9,color:'rgba(255,255,255,.35)',marginTop:2 }}>{c.altBet.note}</div>
+                  {!isExpress && c.agentTexts[0] && c.agentTexts[0] !== '—' && (
+                    <div style={{ padding:'10px 14px',borderRadius:12,background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',fontFamily:mono,fontSize:10.5,lineHeight:1.5,color:'rgba(255,255,255,.7)' }}>{c.agentTexts[0]}</div>
+                  )}
                 </div>
-                <div style={{ display:'flex',gap:12 }}>
-                  {[['КОЭФ',c.altBet.odds,'#FAFAF8'],['EV',c.altBet.ev,'#34D399']].map(([l,v,col])=>(
-                    <div key={l} style={{ textAlign:'right' }}>
-                      <div style={{ fontFamily:mono,fontSize:7,color:'rgba(255,255,255,.28)',marginBottom:2 }}>{l}</div>
-                      <div style={{ fontFamily:f,fontWeight:800,fontSize:15,color:col }}>{v}</div>
-                    </div>
-                  ))}
-                </div>
-              </M.div>
-
+              )}
             </div>
 
             {/* Back buttons */}

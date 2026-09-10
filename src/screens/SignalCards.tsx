@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactElement } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { api, type ApiSignal, type FunnelSignal } from '../api'
 import { useFunnel } from '../store/funnel'
@@ -15,7 +15,6 @@ import tapIcon        from '../assets/icons/tap.svg'
 import lionIcon       from '../assets/agents/lion.svg'
 import goatIcon       from '../assets/agents/goat.svg'
 import snakeIcon      from '../assets/agents/snake.svg'
-import shadowIcon     from '../assets/agents/shadow.svg'
 import OnboardHint, { ExpandHint } from '../components/OnboardHint'
 
 const M = motion as any
@@ -80,6 +79,52 @@ const AI_DATA = {
   ],
   total:  { rec: 'ТБ 2.5', odds: '1.68', ev: '+9%', note: 'Обе забивали в 8 из 10 матчей' },
   shadow: 'Согласна по основному исходу. Тотал тоже интересен — высокий темп.',
+}
+
+// ── Кастомные аватарки ИИ-агентов ─────────────────────────────────────
+// Премиальные градиентные бейджи с глифом роли (вместо картинок лев/коза/змея).
+type AgentType = 'stat' | 'scout' | 'arb' | 'shadow'
+const AGENT_GRAD: Record<AgentType, [string, string]> = {
+  stat:   ['#FBBF24', '#B45309'],
+  scout:  ['#38BDF8', '#0369A1'],
+  arb:    ['#34D399', '#047857'],
+  shadow: ['#A78BFA', '#6D28D9'],
+}
+function AgentAvatar({ type, size = 46 }: { type: AgentType; size?: number }) {
+  const [a, b] = AGENT_GRAD[type]
+  const gid = `ag-${type}`
+  const glyph: Record<AgentType, ReactElement> = {
+    // Столбчатый график — Статистик (данные)
+    stat: <g stroke="#fff" strokeWidth="2.6" strokeLinecap="round">
+      <line x1="10" y1="21" x2="10" y2="16" /><line x1="15" y1="21" x2="15" y2="10" /><line x1="20" y1="21" x2="20" y2="14" />
+    </g>,
+    // Радар/прицел — Скаут (разведка контекста)
+    scout: <g fill="none" stroke="#fff" strokeWidth="2.2">
+      <circle cx="14.5" cy="14.5" r="6.6" /><circle cx="14.5" cy="14.5" r="2.2" fill="#fff" stroke="none" />
+      <line x1="19.5" y1="19.5" x2="23" y2="23" strokeLinecap="round" strokeWidth="2.6" />
+    </g>,
+    // Весы — Арбитр (вердикт/справедливость)
+    arb: <g fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="15" y1="7" x2="15" y2="22" /><line x1="8" y1="10.5" x2="22" y2="10.5" />
+      <path d="M8 10.5 5 16.5h6z" fill="#ffffff33" /><path d="M22 10.5 19 16.5h6z" fill="#ffffff33" /><line x1="11" y1="22" x2="19" y2="22" />
+    </g>,
+    // Затмение/маска — Тень (независимая проверка)
+    shadow: <g fill="none" stroke="#fff" strokeWidth="2.2">
+      <circle cx="15" cy="15" r="7.6" /><path d="M15 7.4a7.6 7.6 0 000 15.2z" fill="#fff" stroke="none" opacity=".9" />
+    </g>,
+  }
+  return (
+    <svg width={size} height={size} viewBox="0 0 30 30"
+      style={{ borderRadius: size * 0.3, flexShrink: 0, boxShadow: `0 4px 14px ${a}55` }}>
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor={a} /><stop offset="1" stopColor={b} /></linearGradient>
+      </defs>
+      <rect width="30" height="30" rx="9" fill={`url(#${gid})`} />
+      <rect x=".5" y=".5" width="29" height="29" rx="8.5" fill="none" stroke="#ffffff33" />
+      <path d="M0 0h30v13c-8 5-22 5-30 0z" fill="#ffffff22" />
+      {glyph[type]}
+    </svg>
+  )
 }
 
 // ── Team logo ─────────────────────────────────────────────────────────
@@ -189,14 +234,13 @@ export default function SignalCards() {
   // Реальный бесплатный сигнал (банкер дня) — юзер должен открыть ставку,
   // которая реально зайдёт, а не декорацию
   const [realSig, setRealSig] = useState<FunnelSignal | null>(null)
-  const [realCard, setRealCard] = useState<ApiSignal | null>(null)
+  const [sigList, setSigList] = useState<ApiSignal[]>([])
   useEffect(() => {
     api.funnelSignal().then(s => { if (s && s.team1) setRealSig(s) }).catch(() => {})
-    // Полная карточка банкера (тексты агентов, minOdds) — для флипа
-    api.botSignals().then(list => {
-      const b = list.find(s => s.isBanker) || list[0]
-      if (b) setRealCard(b)
-    }).catch(() => {})
+    // Список сигналов дня: из него берём РЕАЛЬНЫЕ тексты агентов именно для
+    // выбранного матча (по id), а не от банкера — иначе на теннис лез разбор
+    // футбольного матча («цирк»).
+    api.botSignals().then(list => { setSigList(list) }).catch(() => {})
   }, [])
 
   // Бесплатная ставка УЖЕ взята (одна навсегда): при возврате на экран сразу
@@ -282,22 +326,42 @@ export default function SignalCards() {
                 delta: '0.00', dir: 'down' as const, note: 'Живая линия от бота' },
   } : base
 
-  // Флип-сторона: реальные тексты агентов банкера вместо заготовки про Реал
-  const aiData = (realCard && realCard.agents) ? {
+  // ── Флип-сторона: РЕАЛЬНЫЙ разбор ВЫБРАННОГО матча (по id), не банкер ──
+  // Раньше тексты брались от банкера/муляжа → на теннис лез разбор футбола.
+  const _matched = realSig ? sigList.find(s => String(s.id) === String(realSig.id)) : null
+  const _A = _matched?.agents || {}
+  // ВАЖНО: c может быть null (экран выбора, карта ещё не открыта) — иначе
+  // обращение к c.* роняет весь экран в ЧЁРНЫЙ. Работаем через безопасный _cc.
+  const _cc: any = c || {}
+  const _fav  = String(_cc.rec || 'ставку')
+  const _conf = Math.max(50, Math.min(97, Math.round((_cc.probs?.[0]?.pct as number) || Number(_cc.score) || 72)))
+  const _oddsNum = parseFloat(String(_cc.odds)) || 0
+  const _mkt  = _oddsNum > 1 ? Math.min(96, Math.round(100 / _oddsNum)) : Math.max(45, _conf - 10)
+  const _edge = Math.max(1, _conf - _mkt)
+  const _genText = (k: AgentType): string => {
+    switch (k) {
+      case 'stat':   return `ELO, форма и статистика на стороне «${_fav}». Модель оценивает исход в ${_conf}%.`
+      case 'scout':  return `${_cc.home || ''} — ${_cc.away || ''}: состав, мотивация и календарь учтены. Критичных рисков не вижу.`
+      case 'arb':    return `Рынок закладывает ${_mkt}%, Chimera — ${_conf}%. Перевес +${_edge}pp → ставка «${_fav}».`
+      case 'shadow': return `Независимая модель согласна по основному исходу «${_fav}».`
+    }
+  }
+  const agents4: { type: AgentType; name: string; role: string; accent: string; text: string; verdict?: boolean }[] = [
+    { type: 'stat',   name: 'Статистик', role: 'Данные',   accent: AGENT_GRAD.stat[0],   text: _A.statistician || _genText('stat') },
+    { type: 'scout',  name: 'Скаут',     role: 'Контекст', accent: AGENT_GRAD.scout[0],  text: _A.scout || _genText('scout') },
+    { type: 'arb',    name: 'Арбитр',    role: 'Вердикт',  accent: AGENT_GRAD.arb[0],    text: _A.arbiter || _genText('arb'), verdict: true },
+    { type: 'shadow', name: 'Тень',      role: 'Проверка', accent: AGENT_GRAD.shadow[0], text: _A.llama || _genText('shadow') },
+  ]
+  // Совместимый объект для запасного отображения (тексты — уже реальные).
+  const aiData = {
     agents: [
-      { role: 'ST', name: 'Статистик', icon: lionIcon,  accent: '#F59E0B',
-        text: realCard.agents.statistician || AI_DATA.agents[0].text, verdict: false },
-      { role: 'SC', name: 'Скаут',     icon: goatIcon,  accent: '#94A3B8',
-        text: realCard.agents.scout || AI_DATA.agents[1].text, verdict: false },
-      { role: 'AR', name: 'Арбитр',    icon: snakeIcon, accent: '#10B981',
-        text: realCard.agents.arbiter || AI_DATA.agents[2].text, verdict: true },
+      { name: 'Статистик', role: 'ST', accent: '#F59E0B', icon: lionIcon,  text: agents4[0].text, verdict: false },
+      { name: 'Скаут',     role: 'SC', accent: '#94A3B8', icon: goatIcon,  text: agents4[1].text, verdict: false },
+      { name: 'Арбитр',    role: 'AR', accent: '#10B981', icon: snakeIcon, text: agents4[2].text, verdict: true },
     ],
-    total: realCard.minOdds
-      ? { rec: `Кэф от ${realCard.minOdds}`, odds: String(realCard.odds), ev: `+${realCard.ev}%`,
-          note: 'Ставь только если твоя БК даёт не ниже' }
-      : AI_DATA.total,
-    shadow: realCard.agents.llama || AI_DATA.shadow,
-  } : AI_DATA
+    total: AI_DATA.total,
+    shadow: agents4[3].text,
+  }
 
   // ── DETAIL SCREEN ──────────────────────────────────────────────────────
   if (expanded && c) {
@@ -447,7 +511,7 @@ export default function SignalCards() {
             <div style={{ fontFamily: mono, fontSize: 9, color: 'rgba(255,255,255,.35)', letterSpacing: '.12em' }}>{c.home} · vs · {c.away}</div>
           </div>
           {/* ═══ ORACLE SCREEN ═══ */}
-          <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', scrollbarWidth: 'none' as const, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 22px 108px', gap: 0 }}>
+          <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', scrollbarWidth: 'none' as const, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', padding: '72px 20px 108px', gap: 0 }}>
 
             {/* Score ring */}
             {/* Score ring — compact */}
@@ -469,59 +533,82 @@ export default function SignalCards() {
               </svg>
             </M.div>
 
-            {/* Agent icons — bigger with names */}
-            <M.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .3 }}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginTop: 10, marginBottom: 20 }}>
-              {[...aiData.agents, { icon: shadowIcon, accent: '#60A5FA', name: 'Shadow' }].map((a, i) => (
-                <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
-                  <div style={{ position: 'relative' }}>
-                    <img src={a.icon} width={40} height={40} alt="" style={{ borderRadius: 10, boxShadow: `0 0 12px ${a.accent}66` }} />
-                    <div style={{ position: 'absolute', bottom: -3, right: -3, width: 13, height: 13, borderRadius: '50%',
-                      background: '#10B981', border: '2px solid #04020D', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 7, color: 'white', fontWeight: 900 }}>✓</div>
+            {/* Консенсус — стек аватарок + согласие */}
+            <M.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .26 }}
+              style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 8, marginBottom: 14,
+                padding: '6px 8px 6px 6px', borderRadius: 24, background: 'rgba(167,139,250,.1)', border: '1px solid rgba(167,139,250,.28)' }}>
+              <div style={{ display: 'flex' }}>
+                {(['stat','scout','arb','shadow'] as AgentType[]).map((t, i) => (
+                  <div key={t} style={{ marginLeft: i ? -9 : 0, borderRadius: 9, boxShadow: '0 0 0 2px #0C0726' }}>
+                    <AgentAvatar type={t} size={24} />
                   </div>
-                  <span style={{ fontFamily: mono, fontSize: 7.5, color: `${a.accent}99`, letterSpacing: '.05em' }}>
-                    {(a as any).name || (a as any).role}
-                  </span>
+                ))}
+              </div>
+              <span style={{ fontFamily: mono, fontSize: 9.5, fontWeight: 700, letterSpacing: '.06em', color: '#C4B5FD', paddingRight: 4 }}>
+                4 ИИ-агента · согласие {_conf}%
+              </span>
+            </M.div>
+
+            {/* Карточки агентов — ВСЕ отвечают про этот матч */}
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+              {agents4.map((a, i) => (
+                <M.div key={a.type} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: .32 + i * .07 }}
+                  style={{ display: 'flex', gap: 11, padding: '11px 13px', borderRadius: 14, textAlign: 'left',
+                    background: a.verdict ? 'rgba(167,139,250,.12)' : 'rgba(255,255,255,.04)',
+                    border: `1px solid ${a.verdict ? 'rgba(167,139,250,.4)' : 'rgba(255,255,255,.08)'}` }}>
+                  <AgentAvatar type={a.type} size={40} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 3 }}>
+                      <span style={{ fontFamily: f, fontWeight: 800, fontSize: 13, color: '#FAFAF8' }}>{a.name}</span>
+                      <span style={{ fontFamily: mono, fontSize: 7, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase' as const,
+                        color: a.accent, padding: '2px 6px', borderRadius: 5, background: `${a.accent}22` }}>{a.role}</span>
+                      {a.verdict && <span style={{ marginLeft: 'auto', fontFamily: mono, fontSize: 7, fontWeight: 700, letterSpacing: '.1em', color: '#C4B5FD' }}>◆ ВЕРДИКТ</span>}
+                    </div>
+                    <div style={{ fontFamily: mono, fontSize: 10.5, color: 'rgba(255,255,255,.68)', lineHeight: 1.5 }}>{a.text}</div>
+                  </div>
+                </M.div>
+              ))}
+            </div>
+
+            {/* Рынок vs Chimera */}
+            <M.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: .62 }}
+              style={{ width: '100%', padding: '12px 14px', borderRadius: 14, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)', marginBottom: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 9 }}>
+                <span style={{ fontFamily: mono, fontSize: 8.5, letterSpacing: '.16em', textTransform: 'uppercase' as const, color: 'rgba(255,255,255,.4)' }}>Оценка исхода</span>
+                <span style={{ fontFamily: mono, fontSize: 8.5, fontWeight: 700, color: '#34D399' }}>перевес +{_edge}pp</span>
+              </div>
+              {([['Рынок', _mkt, 'rgba(255,255,255,.4)'], ['Chimera AI', _conf, '#C4B5FD']] as [string, number, string][]).map(([l, v, col]) => (
+                <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: l === 'Рынок' ? 7 : 0 }}>
+                  <span style={{ width: 66, fontFamily: mono, fontSize: 9, color: 'rgba(255,255,255,.5)' }}>{l}</span>
+                  <div style={{ flex: 1, height: 7, borderRadius: 4, background: 'rgba(255,255,255,.07)', overflow: 'hidden' }}>
+                    <M.div initial={{ width: 0 }} animate={{ width: `${v}%` }} transition={{ delay: .7, duration: .7 }}
+                      style={{ height: '100%', borderRadius: 4,
+                        background: l === 'Chimera AI' ? 'linear-gradient(90deg,#7C3AED,#C084FC)' : 'rgba(255,255,255,.28)',
+                        boxShadow: l === 'Chimera AI' ? '0 0 10px rgba(167,139,250,.6)' : 'none' }} />
+                  </div>
+                  <span style={{ width: 34, textAlign: 'right', fontFamily: f, fontWeight: 800, fontSize: 13, color: col }}>{v}%</span>
                 </div>
               ))}
             </M.div>
 
-            <div style={{ width: '100%', height: 1, background: 'linear-gradient(90deg,transparent,rgba(167,139,250,.3),transparent)', marginBottom: 18 }} />
-
-            {/* Verdict */}
-            <M.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: .45 }}
-              style={{ width: '100%', textAlign: 'center', marginBottom: 16 }}>
-              <div style={{ fontFamily: mono, fontSize: 8, fontWeight: 700, letterSpacing: '.3em', textTransform: 'uppercase' as const, color: 'rgba(167,139,250,.55)', marginBottom: 8 }}>Вердикт арбитра</div>
-              <div style={{ fontFamily: f, fontWeight: 700, fontSize: 15, lineHeight: 1.45, color: '#FAFAF8' }}>
-                {aiData.agents.find(a => a.verdict)?.text}
-              </div>
-            </M.div>
-
-            {/* Shadow */}
-            <M.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: .58 }}
-              style={{ width: '100%', padding: '9px 13px', borderRadius: 11, borderLeft: '2px solid rgba(96,165,250,.45)',
-                background: 'rgba(59,130,246,.06)', marginBottom: 12 }}>
-              <div style={{ fontFamily: mono, fontSize: 7.5, color: 'rgba(96,165,250,.65)', letterSpacing: '.18em', textTransform: 'uppercase' as const, marginBottom: 4 }}>Shadow · Llama 70B</div>
-              <div style={{ fontFamily: mono, fontSize: 10, color: 'rgba(255,255,255,.58)', lineHeight: 1.5 }}>{aiData.shadow}</div>
-            </M.div>
-
-            {/* Alt bet */}
-            <M.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .68 }}
-              style={{ width: '100%', padding: '9px 14px', borderRadius: 11,
-                background: 'rgba(16,185,129,.09)', border: '1px solid rgba(52,211,153,.25)',
+            {/* Итоговая ставка */}
+            <M.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .72 }}
+              style={{ width: '100%', padding: '12px 16px', borderRadius: 14, background: 'rgba(139,92,246,.16)',
+                border: '1.5px solid rgba(167,139,250,.42)', boxShadow: '0 0 24px rgba(139,92,246,.2)',
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <div style={{ fontFamily: mono, fontSize: 7, letterSpacing: '.2em', textTransform: 'uppercase' as const, color: 'rgba(52,211,153,.55)', marginBottom: 3 }}>Альт. ставка</div>
-                <div style={{ fontFamily: f, fontWeight: 900, fontSize: 16, color: '#34D399' }}>{aiData.total.rec}</div>
+                <div style={{ fontFamily: mono, fontSize: 8, letterSpacing: '.2em', textTransform: 'uppercase' as const, color: '#A78BFA', marginBottom: 4 }}>Итоговая ставка</div>
+                <div style={{ fontFamily: f, fontWeight: 900, fontSize: 22, color: '#fff', textShadow: '0 0 16px rgba(167,139,250,.5)' }}>{c.rec}</div>
               </div>
-              <div style={{ display: 'flex', gap: 12 }}>
-                {[['КОЭФ', aiData.total.odds, '#FAFAF8'], ['EV', aiData.total.ev, '#34D399']].map(([l,v,col]) => (
-                  <div key={l as string} style={{ textAlign: 'right' }}>
-                    <div style={{ fontFamily: mono, fontSize: 7, color: 'rgba(255,255,255,.28)', marginBottom: 2 }}>{l}</div>
-                    <div style={{ fontFamily: f, fontWeight: 800, fontSize: 15, color: col as string }}>{v}</div>
-                  </div>
-                ))}
+              <div style={{ display: 'flex', gap: 14 }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontFamily: mono, fontSize: 8, color: 'rgba(255,255,255,.45)', marginBottom: 3 }}>КОЭФ</div>
+                  <div style={{ fontFamily: f, fontWeight: 900, fontSize: 18, color: '#FAFAF8' }}>{c.odds}</div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontFamily: mono, fontSize: 8, color: 'rgba(255,255,255,.45)', marginBottom: 3 }}>УВЕР.</div>
+                  <div style={{ fontFamily: f, fontWeight: 900, fontSize: 18, color: '#34D399' }}>{_conf}%</div>
+                </div>
               </div>
             </M.div>
 

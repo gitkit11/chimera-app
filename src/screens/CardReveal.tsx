@@ -57,12 +57,15 @@ interface Card {
 
 // Фолбэк на случай пустой базы/ошибки сети — экран НЕ должен ломаться.
 // В норме заменяется реальными вчерашними ставками из /api/funnel-history.
+// Резерв на случай полного сбоя сети (в норме заменяется реальными ставками
+// из /api/funnel-history с ретраем). НЕйтральные названия, а не узнаваемые
+// клубы — чтобы при сбое не выглядело фейком «Real Madrid вчера зашёл».
 const FALLBACK_CARDS: Card[] = [
-  { sport: 'football',   tag: 'La Liga',      home: 'Real Madrid', away: 'Man City',  rec: 'П1',     odds: 1.85, ev: '+14%', win: true,  rarity: 'legend'  as RarityKey, date: `${YESTERDAY} · 21:00`, bg: SPORT_BG.football },
-  { sport: 'basketball', tag: 'NBA',           home: 'Lakers',      away: 'Warriors',  rec: 'П1',     odds: 2.10, ev: '+8%',  win: true,  rarity: 'epic'    as RarityKey, date: `${YESTERDAY} · 04:30`, bg: SPORT_BG.basketball },
-  { sport: 'tennis',     tag: 'ATP Finals',    home: 'Djokovic',    away: 'Alcaraz',   rec: 'П1',     odds: 1.55, ev: '+6%',  win: true,  rarity: 'rare'    as RarityKey, date: `${YESTERDAY} · 18:30`, bg: SPORT_BG.tennis },
-  { sport: 'cs2',        tag: 'CS2 Major',     home: 'FaZe',        away: 'NAVI',      rec: 'П1',     odds: 1.92, ev: '+5%',  win: false, rarity: 'rare'    as RarityKey, date: `${YESTERDAY} · 17:00`, bg: SPORT_BG.cs2 },
-  { sport: 'hockey',     tag: 'NHL Playoffs',  home: 'Colorado',    away: 'Edmonton',  rec: 'ТМ 5.5', odds: 1.88, ev: '+15%', win: true,  rarity: 'chimera' as RarityKey, date: `${YESTERDAY} · 03:00`, bg: SPORT_BG.hockey },
+  { sport: 'football',   tag: 'Serie A',       home: 'Верона',      away: 'Кальяри',   rec: 'П1',     odds: 1.85, ev: '+14%', win: true,  rarity: 'legend'  as RarityKey, date: `${YESTERDAY} · 21:00`, bg: SPORT_BG.football },
+  { sport: 'tennis',     tag: 'ATP',           home: 'Сонего',      away: 'Дарси',     rec: 'П1',     odds: 1.55, ev: '+6%',  win: true,  rarity: 'rare'    as RarityKey, date: `${YESTERDAY} · 18:30`, bg: SPORT_BG.tennis },
+  { sport: 'football',   tag: 'Ligue 1',       home: 'Ланс',        away: 'Брест',     rec: 'П1',     odds: 1.72, ev: '+8%',  win: true,  rarity: 'epic'    as RarityKey, date: `${YESTERDAY} · 20:00`, bg: SPORT_BG.football },
+  { sport: 'cs2',        tag: 'ESL',           home: 'Fnatic',      away: 'Heroic',    rec: 'П1',     odds: 1.92, ev: '+5%',  win: false, rarity: 'rare'    as RarityKey, date: `${YESTERDAY} · 17:00`, bg: SPORT_BG.cs2 },
+  { sport: 'tennis',     tag: 'WTA',           home: 'Носкова',     away: 'Учиджима',  rec: 'П1',     odds: 1.60, ev: '+11%', win: true,  rarity: 'chimera' as RarityKey, date: `${YESTERDAY} · 15:00`, bg: SPORT_BG.tennis },
 ]
 
 function ProfitBanner({ profit, stake, cards }: { profit: number, stake: number, cards: Card[] }) {
@@ -166,7 +169,7 @@ function ProfitBanner({ profit, stake, cards }: { profit: number, stake: number,
         <M.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .28 }}
           style={{ display: 'flex' }}>
           {[
-            { v: `+${roi}%`, l: 'ROI', c: '#10B981' },
+            { v: `${roi >= 0 ? '+' : ''}${roi}%`, l: 'ROI', c: roi >= 0 ? '#10B981' : '#F87171' },
             { v: `${Math.round(wins/Math.max(1,cards.length)*100)}%`, l: 'Точность', c: '#FAFAF8' },
             { v: `€${stake}`, l: 'Банк', c: 'rgba(255,255,255,.5)' },
           ].map(({ v, l, c }, i) => (
@@ -216,18 +219,29 @@ export default function CardReveal() {
   const [showBanner, setShowBanner] = useState(false)
 
   useEffect(() => {
-    api.funnelHistory().then(res => {
-      if (res?.cards?.length) {
-        const real: Card[] = res.cards.map(c => ({
-          sport: c.sport, tag: c.tag, home: c.home, away: c.away,
-          rec: c.rec, odds: c.odds, ev: c.ev, win: c.win,
-          rarity: (c.rarity as RarityKey) in RARITY ? (c.rarity as RarityKey) : 'rare',
-          date: c.date, bg: SPORT_BG[c.sport] ?? SPORT_BG.football, score: c.score,
-        }))
-        setCards(real)
-        setRevealed(real.map(() => false))
-      }
-    }).catch(() => { /* оставляем фолбэк */ })
+    let done = false
+    // Ретрай: реальные вчерашние ставки ВАЖНЫ (иначе новый юзер видит муляжи
+    // Real Madrid — палево, убивает доверие на трафике). Пробуем до 4 раз.
+    const load = (attempt = 0) => {
+      api.funnelHistory().then(res => {
+        if (res?.cards?.length) {
+          const real: Card[] = res.cards.map(c => ({
+            sport: c.sport, tag: c.tag, home: c.home, away: c.away,
+            rec: c.rec, odds: c.odds, ev: c.ev, win: c.win,
+            rarity: (c.rarity as RarityKey) in RARITY ? (c.rarity as RarityKey) : 'rare',
+            date: c.date, bg: SPORT_BG[c.sport] ?? SPORT_BG.football, score: c.score,
+          }))
+          done = true
+          setCards(real)
+          setRevealed(real.map(() => false))
+        } else if (attempt < 3) {
+          setTimeout(() => load(attempt + 1), 1200)
+        }
+      }).catch(() => {
+        if (!done && attempt < 3) setTimeout(() => load(attempt + 1), 1200)
+      })
+    }
+    load()
   }, [])
 
   const revealedCount = revealed.filter(Boolean).length

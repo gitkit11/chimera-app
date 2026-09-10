@@ -28,7 +28,19 @@ async function resolveBase(): Promise<void> {
 const _ready = resolveBase()
 
 function initData(): string {
-  return window.Telegram?.WebApp?.initData ?? ''
+  // Иногда Telegram отдаёт ПУСТОЙ initData (открытие из кэша/повторный вход) →
+  // сервер не опознаёт юзера → избранное «не сохранилось». Кэшируем последний
+  // валидный initData в localStorage и переиспользуем, если текущий пуст.
+  const live = window.Telegram?.WebApp?.initData ?? ''
+  if (live && live.length > 10) {
+    try { localStorage.setItem('chimera_init_data', live) } catch { /* ignore */ }
+    return live
+  }
+  try {
+    const saved = localStorage.getItem('chimera_init_data')
+    if (saved && saved.length > 10) return saved
+  } catch { /* ignore */ }
+  return live
 }
 
 async function get<T>(path: string): Promise<T> {
@@ -94,11 +106,31 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 }
 
 
+// Резервный статический снимок на gh-pages. Переживает падение хостинга
+// (домен лёг) — снимки в репо остаются последними успешными ответами.
+const STATIC_ORIGIN = 'https://gitkit11.github.io/chimera-app'
+async function getStatic<T>(path: string): Promise<T> {
+  const sep = path.includes('?') ? '&' : '?'
+  const res = await fetch(`${STATIC_ORIGIN}${path}${sep}t=${Date.now()}`, {
+    cache: 'no-store',
+    headers: { 'ngrok-skip-browser-warning': '1', 'cf-skip-browser-warning': '1' },
+  })
+  if (!res.ok) throw new Error(`static ${path} → ${res.status}`)
+  return res.json()
+}
+
 async function getWithLiveFallback<T>(path: string, isEmpty: (v: T) => boolean): Promise<T> {
+  // 1) основной домен (api.chimera-ai.tech) — живые данные
   try {
     const v = await get<T>(path)
     if (!isEmpty(v)) return v
-  } catch { /* статика недоступна — идём на живой сервер */ }
+  } catch { /* домен недоступен/пусто — пробуем резерв */ }
+  // 2) резервный статический снимок (если домен лёг или режется провайдером)
+  try {
+    const v = await getStatic<T>(path)
+    if (!isEmpty(v)) return v
+  } catch { /* снимка нет — последний шанс ниже */ }
+  // 3) персональный/живой origin (последняя попытка)
   return getLive<T>(path)
 }
 
@@ -226,7 +258,37 @@ export interface ApiSignal {
   // Личные встречи пары (кэш H2H на бэке)
   h2h?: { record: string; total: number; avgTotal?: number | null
     matches: { date: string; home: string; away: string; score: string }[] } | null
+  // «Разбор» обратной стороны (card_analysis.py)
+  analysis?: ApiAnalysis | null
 }
+
+export interface ApiAnalysis {
+  market: '1x2' | 'total'
+  verdict: { pick: string; odds: number | null; p_model: number; p_market: number | null
+    edge_pp: number | null; ev: number | null; min_odds: number | null; stake_pct?: number }
+  formulas: string[]; insights: string[]; risks: string[]
+  strength: {
+    elo: { home: number; away: number; gap: number } | null
+    xg: { home: number; away: number } | null
+    form: { home: FormSummary | null; away: FormSummary | null }
+    surface?: string | null; tier?: string | null
+    league_base?: Record<string, number> | null
+  }
+  recent: { home: RecentMatch[]; away: RecentMatch[] }
+  h2h: { n: number; home_wins: number; draws: number; away_wins: number; avg_total: number | null } | null
+  ai: {
+    reasoning: string | null; risk?: string | null; confidence?: number | null; unanimous: boolean
+    blind: { p_home: number | null; p_draw: number | null; p_away: number | null; p_over: number | null
+      key_factor?: string | null; info_gap?: string | null; questions: { q: string; a: string; src: string }[] } | null
+    judge: { verdict: string | null; notes?: string[] | null } | null
+    scout: { finding?: string | null; verdict?: string | null; reason?: string | null } | null
+  }
+  probs: { model: { home: number; draw: number | null; away: number }
+    market: { home: number; draw: number | null; away: number } } | null
+}
+export interface FormSummary { wins: number; draws: number; n: number; avg_total: number | null
+  streak: string | null; unbeaten: number; string: string }
+export interface RecentMatch { date: string; opp: string; home: boolean; score: string | null; res: 'W' | 'D' | 'L'; total: number | null }
 
 export interface ApiExpress {
   id: string; sport: string; type: string
@@ -237,4 +299,5 @@ export interface ApiExpress {
 
 export interface ApiStats {
   winrate: number; roi: number; total_signals: number; total_wins: number; last_updated: string
+  analyzed?: number
 }

@@ -8,7 +8,9 @@ const MA = AnimatePresence as any
 const f    = "'Clash Display','Unbounded',sans-serif"
 const mono = "'JetBrains Mono',monospace"
 
-const MANAGER_URL = 'https://t.me/chimera_manager'
+// В Telegram Mini App t.me-ссылки надёжно открываются через openTelegramLink,
+// а не target=_blank (иначе часто ничего не происходит) — см. onClick ниже.
+const MANAGER_URL = `https://t.me/pankotsk1?text=${encodeURIComponent('Здравствуйте! Нужна помощь с Chimera AI 🙌')}`
 
 const FAQS = [
   {
@@ -236,6 +238,7 @@ export default function SupportScreen() {
 
           {/* Live support — Human + Heart card */}
           <M.a href={MANAGER_URL} target="_blank" rel="noreferrer" whileTap={{ scale: .95 }}
+            onClick={(e: any) => { const tg = (window as any).Telegram?.WebApp; if (tg?.openTelegramLink) { e.preventDefault(); tg.openTelegramLink(MANAGER_URL) } }}
             style={{ flex: 1, borderRadius: 20, textDecoration: 'none', cursor: 'pointer',
               padding: 2,
               background: 'linear-gradient(135deg,#34D399,#10B981,#059669)',

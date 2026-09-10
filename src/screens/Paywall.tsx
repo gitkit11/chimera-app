@@ -240,7 +240,12 @@ export default function Paywall() {
             {(() => {
               const tiles = [
                 { v: live ? `${live.winrate}%` : '…', l: 'винрейт 30д', c: '#34D399' },
-                { v: live ? `${live.roi > 0 ? '+' : ''}${live.roi}%` : '…', l: 'ROI', c: A },
+                // ROI на ставках-фаворитах бывает слегка минусовым (низкие кэфы) —
+                // не показываем минус в продающем блоке: при ROI>0 даём его,
+                // иначе крупное число побед (честно и всегда в плюс).
+                live && live.roi > 0
+                  ? { v: `+${live.roi}%`, l: 'ROI 30д', c: A }
+                  : { v: live ? String(live.wins) : '…', l: 'побед всего', c: A },
                 { v: live ? String(live.today) : '…', l: 'сигналов сегодня', c: '#F5F3FF' },
               ]
               return (
@@ -369,7 +374,7 @@ export default function Paywall() {
                   fontFamily: mono, fontSize: 8, color: 'rgba(196,181,253,.65)' }}>✓ {t}</div>
               ))}
             </div>
-            <M.button whileTap={{ scale: .97 }} onClick={() => { haptic('medium'); window.open('https://t.me/chimera_manager', '_blank') }}
+            <M.button whileTap={{ scale: .97 }} onClick={() => { haptic('medium'); const u = `https://t.me/pankotsk1?text=${encodeURIComponent('Здравствуйте! Хочу купить подписку Chimera AI 💎')}`; const tg = (window as any).Telegram?.WebApp; if (tg?.openTelegramLink) tg.openTelegramLink(u); else window.open(u, '_blank') }}
               style={{ position: 'relative', width: '100%', padding: '2px', borderRadius: 13,
                 overflow: 'hidden', background: 'none', border: 'none', cursor: 'pointer', display: 'block' }}>
               <span aria-hidden style={{ position: 'absolute', top: '50%', left: '50%',

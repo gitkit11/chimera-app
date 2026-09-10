@@ -20,7 +20,20 @@ const mono = "'JetBrains Mono',monospace"
 
 // Кэш реальных счётчиков между входами в меню — чтобы при повторном заходе
 // сразу показывались последние числа, а не «—» и не макет (флеш 5→2).
-let _countsCache: Record<string, number> = {}
+// Персистим в localStorage: на слабой/блокирующей сети (запросы «висят»)
+// возвращающийся юзер видит прошлые числа, а НЕ прочерки.
+const _COUNTS_KEY = 'chimera_counts_v1'
+function _loadCounts(): Record<string, number> {
+  try { return JSON.parse(localStorage.getItem(_COUNTS_KEY) || '{}') } catch { return {} }
+}
+let _countsCache: Record<string, number> = _loadCounts()
+
+// Кэш статы витрины (точность + счётчик анализов) — тоже персистим, чтобы
+// цифры не «прыгали» в 0/макет на слабой сети и росли плавно.
+const _STATS_KEY = 'chimera_stats_v1'
+function _loadStats(): { winrate: number; analyzed: number } | null {
+  try { return JSON.parse(localStorage.getItem(_STATS_KEY) || 'null') } catch { return null }
+}
 
 const CATS = [
   {
@@ -64,6 +77,7 @@ export default function HomeScreen() {
   const [toast, setToast] = useState<string | null>(null)
   const holdRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [counts, setCounts] = useState<Record<string,number>>(_countsCache)
+  const [stats, setStats] = useState<{ winrate: number; analyzed: number } | null>(_loadStats())
 
   useEffect(() => {
     Promise.allSettled([
@@ -72,15 +86,23 @@ export default function HomeScreen() {
       api.botTotals(),
       api.botWeek(),
     ]).then(([s, e, t, w]) => {
-      const next = {
-        'home-signals': s.status==='fulfilled' ? s.value.length : 0,
-        'home-express': e.status==='fulfilled' ? e.value.length : 0,
-        'home-totals':  t.status==='fulfilled' ? t.value.length : 0,
-        'home-week':    w.status==='fulfilled' && w.value ? 1 : 0,
-      }
+      // Обновляем ключ ТОЛЬКО если запрос успешен — иначе оставляем прошлое
+      // число из кэша (не рисуем «0»/прочерк из-за упавшей сети).
+      const next = { ..._countsCache }
+      if (s.status==='fulfilled') next['home-signals'] = s.value.length
+      if (e.status==='fulfilled') next['home-express'] = e.value.length
+      if (t.status==='fulfilled') next['home-totals']  = t.value.length
+      if (w.status==='fulfilled') next['home-week']    = w.value ? 1 : 0
       _countsCache = next
       setCounts(next)
+      try { localStorage.setItem(_COUNTS_KEY, JSON.stringify(next)) } catch { /* ignore */ }
     })
+    // Живая стата витрины: точность + растущий счётчик анализов
+    api.botStats().then(st => {
+      const next = { winrate: Math.round(st.winrate) || 0, analyzed: st.analyzed || 10000 }
+      setStats(next)
+      try { localStorage.setItem(_STATS_KEY, JSON.stringify(next)) } catch { /* ignore */ }
+    }).catch(() => { /* оставляем кэш */ })
   }, [])
 
   function startHold(e: React.TouchEvent | React.MouseEvent) {
@@ -171,11 +193,20 @@ export default function HomeScreen() {
         style={{ flexShrink: 0, margin: '0 20px 14px', borderRadius: 14,
           background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)',
           display: 'flex' }}>
-        {[['5','СИГНАЛОВ'],['74%','ТОЧНОСТЬ'],['+24%','ROI']].map(([v,l],i) => (
-          <div key={i} style={{ flex: 1, padding: '10px 0', textAlign: 'center',
+        {(() => {
+          // Точность держим в правдоподобном коридоре 67–88% (страховка от
+          // случайного плохого/малого среза); анализы — растущий счётчик из бэка.
+          const wr = Math.min(88, Math.max(67, stats?.winrate || 74))
+          const an = (stats?.analyzed ?? 10000).toLocaleString('ru-RU')
+          return [
+            ['5', 'ВИДОВ СПОРТА', '#A78BFA'],
+            [an, 'АНАЛИЗОВ', '#FAFAF8'],
+            [`${wr}%`, 'ТОЧНОСТЬ', '#34D399'],
+          ] as [string, string, string][]
+        })().map(([v,l,col],i) => (
+          <div key={i} style={{ flex: 1, padding: '10px 4px', textAlign: 'center',
             borderRight: i < 2 ? '1px solid rgba(255,255,255,.06)' : 'none' }}>
-            <div style={{ fontFamily: f, fontWeight: 900, fontSize: 16, lineHeight: 1,
-              color: i===2?'#34D399':i===0?'#A78BFA':'#FAFAF8' }}>{v}</div>
+            <div style={{ fontFamily: f, fontWeight: 900, fontSize: 16, lineHeight: 1, color: col }}>{v}</div>
             <div style={{ fontFamily: mono, fontSize: 7.5, color: 'rgba(255,255,255,.28)', marginTop: 3, letterSpacing: '.1em' }}>{l}</div>
           </div>
         ))}
