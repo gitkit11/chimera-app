@@ -265,7 +265,8 @@ export interface ApiSignal {
 export interface ApiAnalysis {
   market: '1x2' | 'total'
   verdict: { pick: string; odds: number | null; p_model: number; p_market: number | null
-    edge_pp: number | null; ev: number | null; min_odds: number | null; stake_pct?: number }
+    edge_pp: number | null; ev: number | null; min_odds: number | null; stake_pct?: number | null
+    role?: 'value' | 'rule' | 'rule_low' | 'brick'; note?: string }
   formulas: string[]; insights: string[]; risks: string[]
   strength: {
     elo: { home: number; away: number; gap: number } | null

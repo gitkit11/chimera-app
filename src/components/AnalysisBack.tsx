@@ -97,7 +97,7 @@ export default function AnalysisBack({ a, accent, home, away }: { a: ApiAnalysis
           {[
             ['Модель', `${v.p_model.toFixed(0)}%`, '#FAFAF8'],
             ['Рынок', v.p_market !== null ? `${v.p_market.toFixed(0)}%` : '—', 'rgba(255,255,255,.7)'],
-            ['Перевес', v.edge_pp !== null ? `${v.edge_pp >= 0 ? '+' : ''}${v.edge_pp.toFixed(0)} п.п.` : '—', edgeGood ? '#34D399' : '#FBBF24'],
+            ['Перевес', v.edge_pp !== null ? (v.edge_pp >= 1 ? `+${v.edge_pp.toFixed(0)} п.п.` : 'нет') : '—', edgeGood ? '#34D399' : 'rgba(255,255,255,.55)'],
           ].map(([l, val, col]) => (
             <div key={l as string}>
               <div style={{ fontFamily: mono, fontSize: 8, letterSpacing: '.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,.4)', marginBottom: 3 }}>{l}</div>
@@ -105,11 +105,15 @@ export default function AnalysisBack({ a, accent, home, away }: { a: ApiAnalysis
             </div>
           ))}
         </div>
-        <div style={{ display: 'flex', gap: 14, marginTop: 10, flexWrap: 'wrap', fontFamily: mono, fontSize: 10, color: 'rgba(255,255,255,.6)' }}>
-          {v.ev !== null && <span>EV <b style={{ color: v.ev >= 0 ? '#34D399' : '#F87171' }}>{v.ev >= 0 ? '+' : ''}{v.ev.toFixed(1)}%</b></span>}
-          {v.min_odds && <span>ставь от <b style={{ color: '#FAFAF8' }}>{v.min_odds.toFixed(2)}</b></span>}
-          {v.stake_pct !== undefined && <span>ставка <b style={{ color: '#FAFAF8' }}>{v.stake_pct}%</b> банка</span>}
-        </div>
+        {(v.role === 'brick' || v.role === 'rule_low') ? (
+          <div style={{ marginTop: 10, fontFamily: f, fontSize: 12.5, lineHeight: 1.4, color: '#FBBF24' }}>{v.note}</div>
+        ) : (
+          <div style={{ display: 'flex', gap: 14, marginTop: 10, flexWrap: 'wrap', fontFamily: mono, fontSize: 10, color: 'rgba(255,255,255,.6)' }}>
+            {v.ev !== null && v.ev > 0 && <span>EV <b style={{ color: '#34D399' }}>+{v.ev.toFixed(1)}%</b></span>}
+            {v.min_odds && <span>ставь от <b style={{ color: '#FAFAF8' }}>{v.min_odds.toFixed(2)}</b></span>}
+            {v.stake_pct != null && <span>ставка <b style={{ color: '#FAFAF8' }}>{v.stake_pct}%</b> банка</span>}
+          </div>
+        )}
       </div>
 
       {a.insights?.length > 0 && (
@@ -199,7 +203,7 @@ export default function AnalysisBack({ a, accent, home, away }: { a: ApiAnalysis
                 {a.ai.reasoning}
                 <div style={{ fontFamily: mono, fontSize: 9, color: 'rgba(255,255,255,.4)', marginTop: 6 }}>
                   уверенность {a.ai.confidence ?? '—'} · риск {a.ai.risk ?? '—'} · {a.ai.unanimous ? 'два ИИ согласны' : 'мнения ИИ расходятся'}
-                  {a.ai.judge?.verdict ? ` · судья: ${a.ai.judge.verdict}` : ''}
+                  {a.ai.judge?.verdict ? ` · консенсус: ${a.ai.judge.verdict}` : ''}
                 </div>
               </div>
             )}

@@ -1084,7 +1084,9 @@ export default function CategoryScreen() {
                     boxShadow:`0 0 24px ${accentShadow}`,
                     display:'flex',alignItems:'center',justifyContent:'space-between' }}>
                     <div>
-                      <div style={{ fontFamily:mono,fontSize:9.5,letterSpacing:'.22em',textTransform:'uppercase' as const,color:accent,marginBottom:5,fontWeight:700 }}>⬆ Ставить</div>
+                      <div style={{ fontFamily:mono,fontSize:9.5,letterSpacing:'.22em',textTransform:'uppercase' as const,color:accent,marginBottom:5,fontWeight:700 }}>
+                        {c.analysis?.verdict.role === 'brick' ? '🧱 В экспресс' : '⬆ Ставить'}
+                      </div>
                       <div style={{ fontFamily:f,fontWeight:900,fontSize:isWeek?32:28,color:'#FFFFFF',lineHeight:1,
                         textShadow:`0 0 20px ${accentShadow}, 0 0 40px ${accentShadow}` }}>{c.rec}</div>
                     </div>
