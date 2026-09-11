@@ -1,10 +1,20 @@
 let BASE = ''
 let LIVE = ''  // живой API (cloudflare-туннель) — для POST и персональных данных
 
+// 11.09.2026: в Telegram WebView запрос, отправленный перед уходом в фон, может
+// висеть вечно (сокет уснул вместе с приложением) — тогда экран оставался
+// пустым до перезахода. Любой наш fetch теперь обрывается по таймауту и даёт
+// честную ошибку, которую вызывающий код умеет пережить (кэш не стирается).
+function tfetch(url: string, init?: RequestInit, ms = 9000): Promise<Response> {
+  const ac = new AbortController()
+  const t = setTimeout(() => ac.abort(), ms)
+  return fetch(url, { ...(init || {}), signal: ac.signal }).finally(() => clearTimeout(t))
+}
+
 async function resolveBase(): Promise<void> {
   // Always fetch api-config.json first — server updates it automatically on each tunnel restart
   try {
-    const r = await fetch(`${import.meta.env.BASE_URL}api-config.json`, { cache: 'no-store' })
+    const r = await tfetch(`${import.meta.env.BASE_URL}api-config.json`, { cache: 'no-store' }, 6000)
     if (r.ok) {
       const cfg = await r.json()
       if (cfg.apiUrl) { BASE = cfg.apiUrl }
@@ -16,7 +26,7 @@ async function resolveBase(): Promise<void> {
   // принимают POST и не знают юзера. Для избранного нужен живой сервер:
   // его адрес бот публикует в tunnel-info.json при каждом рестарте туннеля.
   try {
-    const r = await fetch(`${import.meta.env.BASE_URL}tunnel-info.json`, { cache: 'no-store' })
+    const r = await tfetch(`${import.meta.env.BASE_URL}tunnel-info.json`, { cache: 'no-store' }, 6000)
     if (r.ok) {
       const cfg = await r.json()
       if (cfg.tunnelUrl) { LIVE = cfg.tunnelUrl }
@@ -48,7 +58,7 @@ async function get<T>(path: string): Promise<T> {
   // cache:no-store + метка времени: браузер/CDN не имеют права отдать
   // старую (в т.ч. пустую) копию списка сигналов
   const sep = path.includes('?') ? '&' : '?'
-  const res = await fetch(`${BASE}${path}${sep}t=${Date.now()}`, {
+  const res = await tfetch(`${BASE}${path}${sep}t=${Date.now()}`, {
     cache: 'no-store',
     headers: {
       'x-init-data': initData(),
@@ -62,7 +72,7 @@ async function get<T>(path: string): Promise<T> {
 
 async function getLive<T>(path: string): Promise<T> {
   await _ready
-  const doFetch = () => fetch(`${LIVE}${path}`, {
+  const doFetch = () => tfetch(`${LIVE}${path}`, {
     cache: 'no-store',
     headers: {
       'x-init-data': initData(),
@@ -84,7 +94,7 @@ async function getLive<T>(path: string): Promise<T> {
 async function post<T>(path: string, body: unknown): Promise<T> {
   await _ready
   const payload = JSON.stringify(body)
-  const doFetch = () => fetch(`${LIVE}${path}`, {
+  const doFetch = () => tfetch(`${LIVE}${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -111,7 +121,7 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 const STATIC_ORIGIN = 'https://gitkit11.github.io/chimera-app'
 async function getStatic<T>(path: string): Promise<T> {
   const sep = path.includes('?') ? '&' : '?'
-  const res = await fetch(`${STATIC_ORIGIN}${path}${sep}t=${Date.now()}`, {
+  const res = await tfetch(`${STATIC_ORIGIN}${path}${sep}t=${Date.now()}`, {
     cache: 'no-store',
     headers: { 'ngrok-skip-browser-warning': '1', 'cf-skip-browser-warning': '1' },
   })
@@ -178,8 +188,10 @@ export const api = {
   // Избранное: сервер узнаёт юзера по x-init-data (подпись Telegram WebApp).
   // toggle → бот пришлёт уведомление об исходе матча; botFavorites отдаёт и
   // рассчитанные матчи за последние 12ч (result: win/lose + score)
-  toggleFavorite: (sport: string, home: string, away: string) =>
-    post<{ ok: boolean; favorited?: boolean }>('/api/favorite', { sport, home, away }),
+  // market: рынок, который юзер видел на карточке ('1x2' | 'total'). Без него
+  // сервер выводил рынок заново и карточка недели (П1) становилась тоталом.
+  toggleFavorite: (sport: string, home: string, away: string, market?: '1x2' | 'total') =>
+    post<{ ok: boolean; favorited?: boolean }>('/api/favorite', { sport, home, away, market }),
   // Экспресс в избранное: идентичность — стабильный legsHash (совпадает с
   // express_log), по нему бот пришлёт исход экспресса (все ноги зашли/мимо).
   toggleFavoriteExpress: (legsHash: string, label: string, totalOdds: number,

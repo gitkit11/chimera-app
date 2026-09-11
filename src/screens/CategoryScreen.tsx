@@ -645,11 +645,25 @@ export default function CategoryScreen() {
         'home-week':    prev['home-week']    || [],
       }
       let okCount = 0
-      // Пустой УСПЕШНЫЙ ответ = честный пустой экран (демо-карточки не подмешиваем).
-      if (sigR.status === 'fulfilled') { upd['home-signals'] = sigR.value.map(s => mapSignal(s, 'signal')); okCount++ }
-      if (expR.status === 'fulfilled') { upd['home-express'] = expR.value.map(mapExpress); okCount++ }
-      if (totR.status === 'fulfilled') { upd['home-totals'] = totR.value.map(s => mapSignal(s, 'total')); okCount++ }
-      if (wkR.status === 'fulfilled') { upd['home-week'] = (wkR.value && wkR.value.team1) ? [mapSignal(wkR.value, 'week')] : []; okCount++ }
+      let suspectEmpty = 0
+      // 11.09.2026: пустой УСПЕШНЫЙ ответ больше не затирает непустой кэш с первой
+      // попытки. При возврате из фона запрос иногда отдаёт 200 с пустым телом
+      // (getWithLiveFallback подменяет упавший ответ пустым массивом) — раньше это
+      // стирало все карточки. Теперь пустоту поверх непустого принимаем только
+      // если она подтвердилась на повторе.
+      const put = (key: string, res: any, map: (v: any) => Card[]) => {
+        if (res.status !== 'fulfilled') return
+        okCount++
+        let cards: Card[] = []
+        try { cards = map(res.value) || [] } catch { cards = [] }
+        const had = (prev[key] || []).length
+        if (cards.length === 0 && had > 0 && attempt < 2) { suspectEmpty++; return }
+        upd[key] = cards
+      }
+      put('home-signals', sigR, v => (v || []).map((s: any) => mapSignal(s, 'signal')))
+      put('home-express', expR, v => (v || []).map(mapExpress))
+      put('home-totals',  totR, v => (v || []).map((s: any) => mapSignal(s, 'total')))
+      put('home-week',    wkR,  v => (v && v.team1) ? [mapSignal(v, 'week')] : [])
       if (okCount < 4) api.track('fetch-fail')  // диагностика: видно в /users бота
       if (okCount === 0) {
         // сеть ещё не проснулась — кэш не трогаем, пробуем ещё дважды
@@ -660,7 +674,10 @@ export default function CategoryScreen() {
       _cardsCache = upd
       try { localStorage.setItem(LS_CARDS, JSON.stringify(upd)) } catch { /* ignore */ }
       setLiveCards(upd)
-      if (okCount < 4 && attempt < 2) setTimeout(() => loadCards(attempt + 1), 2500)
+      if (suspectEmpty > 0) {
+        api.track('cards-empty-hold')  // пустой ответ поверх кэша — держим старое, перепроверяем
+        if (attempt < 2) setTimeout(() => loadCards(attempt + 1), attempt === 0 ? 1200 : 3000)
+      } else if (okCount < 4 && attempt < 2) setTimeout(() => loadCards(attempt + 1), 2500)
     }).catch(() => { if (!_cardsCache) setLiveCards({}) })
   }
   useEffect(() => {
@@ -783,7 +800,8 @@ export default function CategoryScreen() {
           ok = r?.ok !== false
         }
       } else if (c.away) {
-        const r: any = await api.toggleFavorite(c.sport, c.home, c.away)
+        const r: any = await api.toggleFavorite(c.sport, c.home, c.away,
+          c.cardType === 'total' ? 'total' : '1x2')
         ok = r?.ok !== false
       }
       if (!ok) throw new Error('save failed')
@@ -813,7 +831,8 @@ export default function CategoryScreen() {
         api.toggleFavoriteExpress(c.legsHash, c.expressLabel ?? '',
           Number(c.odds) || 0, c.expressLegsRaw ?? []).catch(() => {})
     } else if (c.away) {
-      api.toggleFavorite(c.sport, c.home, c.away).catch(() => {})
+      api.toggleFavorite(c.sport, c.home, c.away,
+        c.cardType === 'total' ? 'total' : '1x2').catch(() => {})
     }
   }
   const openDetail = (c: Card) => {
