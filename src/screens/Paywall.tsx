@@ -446,7 +446,7 @@ export default function Paywall() {
                 PRO 30 дней — <span style={{ color: BK_BLUE }}>бесплатно</span>
               </div>
               <div style={{ fontFamily: mono, fontSize: 8, color: 'rgba(255,255,255,.30)', marginBottom: 5 }}>
-                Зарегистрируйся + первый депозит от 3000 тнг на 1xBet
+                Зарегистрируйся + первый депозит от 5000 тнг на 1xBet
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                 <span style={{ width: 3, height: 3, borderRadius: '50%', background: BK_BLUE, flexShrink: 0 }} />
