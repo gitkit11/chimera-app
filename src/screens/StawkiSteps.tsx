@@ -14,7 +14,11 @@ const mono = "'JetBrains Mono',monospace"
 const GOLD      = '#E8B84B'
 const GOLD_DIM  = 'rgba(232,184,75,.12)'
 const GOLD_LINE = 'rgba(232,184,75,.28)'
-const STAWKI_URL  = 'https://chimera-ai.tech/go'
+// 13.09.2026: слэш на конце ОБЯЗАТЕЛЕН. Без него сервер отвечает 301 и ведёт на
+// http://chimera-ai.tech/go/ — понижение с https на http. Мини-апп работает по
+// https, и Телеграм блокирует такой переход молча: у владельца «открылось один
+// раз, дальше нет». Со слэшем страница отдаётся сразу, кодом 200, без переадресации.
+const STAWKI_URL  = 'https://chimera-ai.tech/go/'
 const MANAGER_URL = `https://t.me/pankotsk1?text=${encodeURIComponent('Здравствуйте! Нужна помощь с активацией Chimera AI 🙌')}`
 
 // ── Step dots ─────────────────────────────────────────────────────────────────
