@@ -433,7 +433,7 @@ export default function Paywall() {
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontFamily: f, fontWeight: 900, fontSize: 26, lineHeight: 1, color: BK_BLUE }}>€0</div>
+                <div style={{ fontFamily: f, fontWeight: 900, fontSize: 26, lineHeight: 1, color: BK_BLUE }}>$0</div>
                 <div style={{ fontFamily: mono, fontSize: 7, color: 'rgba(255,255,255,.22)',
                   textDecoration: 'line-through' }}>$99</div>
               </div>
@@ -446,7 +446,7 @@ export default function Paywall() {
                 PRO 30 дней — <span style={{ color: BK_BLUE }}>бесплатно</span>
               </div>
               <div style={{ fontFamily: mono, fontSize: 8, color: 'rgba(255,255,255,.30)', marginBottom: 5 }}>
-                Зарегистрируйся + первый депозит от 5000 тнг ≈ €9,5 на 1xBet
+                Зарегистрируйся + первый депозит от 5000 тнг ≈ $11 на 1xBet
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                 <span style={{ width: 3, height: 3, borderRadius: '50%', background: BK_BLUE, flexShrink: 0 }} />

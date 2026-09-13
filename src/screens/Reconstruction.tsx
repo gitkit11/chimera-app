@@ -128,7 +128,7 @@ export default function Reconstruction() {
               {d.rec}
             </div>
             <div className="flex items-center gap-4 mb-4">
-              {[['Коэффициент', d.odds, '#FAFAF8'], ['EV', d.ev, '#7EC88E'], ['Ставка', `€${kellyStake}`, '#FAFAF8']].map(([l, v, c], i) => (
+              {[['Коэффициент', d.odds, '#FAFAF8'], ['EV', d.ev, '#7EC88E'], ['Ставка', `$${kellyStake}`, '#FAFAF8']].map(([l, v, c], i) => (
                 <div key={i} className="flex-1">
                   <div className="font-mono text-[8px] tracking-[.18em] uppercase mb-[3px]"
                     style={{ color: 'rgba(255,255,255,.38)' }}>{l}</div>

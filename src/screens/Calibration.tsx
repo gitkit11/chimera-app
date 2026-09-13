@@ -14,9 +14,9 @@ const SPORTS = [
   {id:'hockey',label:'Хоккей',sub:'NHL · KHL · IIHF'},
 ]
 const STAKES = [
-  {value:12,label:'Мелко',sub:'До €20 за ставку',range:'€5 — 20'},
-  {value:50,label:'Средне',sub:'Рабочий банк',range:'€20 — 100'},
-  {value:200,label:'Крупно',sub:'Опытный игрок',range:'€100+'},
+  {value:12,label:'Мелко',sub:'До $20 за ставку',range:'$5 — 20'},
+  {value:50,label:'Средне',sub:'Рабочий банк',range:'$20 — 100'},
+  {value:200,label:'Крупно',sub:'Опытный игрок',range:'$100+'},
 ]
 const EXPS = [
   {id:'rookie',label:'Новичок',sub:'Меньше года'},
