@@ -104,7 +104,7 @@ function Step1({ onNext }: { onNext: () => void }) {
           <div style={{ fontSize: 14, color: 'rgba(255,255,255,.38)',
             lineHeight: 1.5, fontFamily: 'sans-serif' }}>
             30 дней PRO — бесплатно.<br/>
-            Первый депозит от 5000 тнг — это твой банк для ставок с Chimera AI!
+            Первый депозит от 5000 тнг (≈ €9,5) — это твой банк для ставок с Chimera AI!
           </div>
         </div>
 
@@ -143,7 +143,7 @@ function Step1({ onNext }: { onNext: () => void }) {
             </div>
             <span style={{ fontSize: 12, color: 'rgba(255,255,255,.55)',
               lineHeight: 1.3, fontFamily: 'sans-serif' }}>
-              Первый депозит от 5000 тнг (выведешь когда захочешь)
+              Первый депозит от 5000 тнг ≈ €9,5 (выведешь когда захочешь)
             </span>
           </div>
 
@@ -320,7 +320,7 @@ function Step2({
           <div>
             <div style={{ fontFamily: f, fontWeight: 800, fontSize: 14, lineHeight: 1.2,
               color: depositDone ? GOLD : '#fff', transition: 'color .2s' }}>
-              Я внёс депозит от 5000 тнг
+              Я внёс депозит от 5000 тнг (≈ €9,5)
             </div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,.28)', marginTop: 3,
               fontFamily: 'sans-serif' }}>
