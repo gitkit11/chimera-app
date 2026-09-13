@@ -1,0 +1,1 @@
+var a="/chimera-app/assets/BNJ8ozQw.png";export{a as t};
