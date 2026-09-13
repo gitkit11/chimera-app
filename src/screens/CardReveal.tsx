@@ -13,6 +13,18 @@ import tapIcon        from '../assets/icons/tap.svg'
 import lockIcon       from '../assets/icons/lock.svg'
 import logoIcon       from '../assets/icon_dark2.webp'
 
+// 14.09.2026: аудитория казахская, депозит просим в тенге — суммы в воронке
+// тоже в тенге, иначе человек выбирает банк «€100», а через два экрана читает
+// «внеси 5000 тнг», и история противоречит сама себе.
+const money = (n: number) => Math.round(n).toLocaleString('ru-RU').replace(/,/g, ' ')
+// Русские числительные: 1 карточку, 2-4 карточки, 5+ карточек.
+const plural = (n: number, one: string, few: string, many: string) => {
+  const d = n % 10, h = n % 100
+  if (d === 1 && h !== 11) return one
+  if (d >= 2 && d <= 4 && (h < 12 || h > 14)) return few
+  return many
+}
+
 const SPORT_ICONS: Record<string, string> = {
   football: footballIcon, basketball: basketballIcon,
   tennis: tennisIcon, cs2: cs2Icon, hockey: hockeyIcon,
@@ -157,7 +169,8 @@ function ProfitBanner({ profit, stake, cards }: { profit: number, stake: number,
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
             filter: 'drop-shadow(0 0 32px rgba(16,185,129,.55))',
           }}>
-            +€{count}
+            +{money(count)}<span style={{ fontSize:'.34em', fontWeight:800,
+              marginLeft:6, WebkitTextFillColor:'rgba(255,255,255,.55)' }}>тнг</span>
           </span>
         </M.div>
 
@@ -171,7 +184,7 @@ function ProfitBanner({ profit, stake, cards }: { profit: number, stake: number,
           {[
             { v: `${roi >= 0 ? '+' : ''}${roi}%`, l: 'ROI', c: roi >= 0 ? '#10B981' : '#F87171' },
             { v: `${Math.round(wins/Math.max(1,cards.length)*100)}%`, l: 'Точность', c: '#FAFAF8' },
-            { v: `€${stake}`, l: 'Банк', c: 'rgba(255,255,255,.5)' },
+            { v: `${money(stake)} тнг`, l: 'Банк', c: 'rgba(255,255,255,.5)' },
           ].map(({ v, l, c }, i) => (
             <div key={i} style={{
               flex: 1,
@@ -286,8 +299,9 @@ export default function CardReveal() {
           <div style={{ fontFamily: f, fontWeight: 800, fontSize: 22, lineHeight: 1 }}>
             Нажми — <span style={{ color: '#A78BFA' }}>узнай результат</span>
           </div>
-          <div style={{ fontFamily: mono, fontSize: 10, color: 'rgba(255,255,255,.35)' }}>
-            €{betSize} / сигнал
+          <div style={{ fontFamily: mono, fontSize: 9.5, color: 'rgba(255,255,255,.35)',
+            whiteSpace: 'nowrap', flexShrink: 0, paddingLeft: 10 }}>
+            {money(betSize)} тнг / сигнал
           </div>
         </div>
       </div>
@@ -432,7 +446,7 @@ export default function CardReveal() {
                       }}>
                       <span style={{ fontSize: 18 }}>{c.win ? '✅' : '❌'}</span>
                       <span style={{ fontFamily: mono, fontSize: 8, fontWeight: 700, color: c.win ? '#7EC88E' : '#E05C5C' }}>
-                        {c.win ? `+€${(betSize*(c.odds-1)).toFixed(0)}` : `-€${betSize}`}
+                        {c.win ? `+${money(betSize*(c.odds-1))}` : `-${money(betSize)}`}
                       </span>
                     </M.div>
                   ) : (
@@ -534,7 +548,7 @@ export default function CardReveal() {
                 Считаем результат…
               </>
             ) : (
-              `Открой ещё ${cards.length - revealedCount} ${cards.length - revealedCount === 1 ? 'карточку' : 'карточки'} ↑`
+              `Открой ещё ${cards.length - revealedCount} ${plural(cards.length - revealedCount, 'карточку', 'карточки', 'карточек')} ↑`
             )}
           </M.div>
         )}

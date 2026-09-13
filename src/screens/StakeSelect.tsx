@@ -8,8 +8,8 @@ const mono = "'JetBrains Mono',monospace"
 
 const OPTIONS = [
   {
-    value: 30,
-    label: '€30',
+    value: 5000,
+    label: '5 000',
     tag: 'Старт',
     sub: 'Попробуй как работает',
     accent: '#8B5CF6',
@@ -19,8 +19,8 @@ const OPTIONS = [
     popular: false,
   },
   {
-    value: 100,
-    label: '€100',
+    value: 20000,
+    label: '20 000',
     tag: 'Популярно',
     sub: 'Серьёзный подход',
     accent: '#A78BFA',
@@ -30,8 +30,8 @@ const OPTIONS = [
     popular: true,
   },
   {
-    value: 500,
-    label: '€500',
+    value: 50000,
+    label: '50 000',
     tag: 'Про',
     sub: 'Максимальный результат',
     accent: '#EDE9FE',
@@ -142,7 +142,8 @@ function Card({ o, i, onPick }: { o: typeof OPTIONS[0]; i: number; onPick: () =>
             background: `linear-gradient(135deg,#FFFFFF 0%,${o.accent} 100%)`,
             WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent',
             filter: o.popular ? `drop-shadow(0 0 14px ${o.accent}66)` : 'none',
-          }}>{o.label}</div>
+          }}>{o.label}<span style={{ fontSize:15, fontWeight:800, marginLeft:5,
+            WebkitTextFillColor:'rgba(255,255,255,.42)' }}>тнг</span></div>
 
           <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6 }}>
             {o.popular && (

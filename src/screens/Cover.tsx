@@ -139,7 +139,7 @@ export default function Cover() {
         </M.div>
 
         <div className="flex-1 flex flex-col justify-end min-h-0"
-          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + var(--tg-safe-bottom,0px) + 96px)' }}>
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + var(--tg-safe-bottom,0px) + 108px)' }}>
 
           {/* Плашка: первый AI-беттинг */}
           <M.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .18, duration: .6 }}
@@ -245,15 +245,15 @@ export default function Cover() {
               background: 'linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent)',
             }} />
             <span style={{
-              flex: 1, padding: '20px 22px', position: 'relative', zIndex: 1,
-              display: 'flex', alignItems: 'center', gap: 10,
-              fontFamily: f, fontWeight: 700, fontSize: 16.5, letterSpacing: '.02em', color: '#F5F3FF',
+              flex: 1, padding: '20px 16px', position: 'relative', zIndex: 1,
+              display: 'flex', alignItems: 'center', gap: 9, whiteSpace: 'nowrap',
+              fontFamily: f, fontWeight: 700, fontSize: 15.5, letterSpacing: '.01em', color: '#F5F3FF',
               textShadow: '0 0 18px rgba(167,139,250,.45)'
             }}>
               <GiftIcon size={19} />Забрать бесплатную ставку
             </span>
             <span style={{
-              width: 58, flexShrink: 0, display: 'flex', alignItems: 'center',
+              width: 50, flexShrink: 0, display: 'flex', alignItems: 'center',
               justifyContent: 'center', fontSize: 20, fontWeight: 700, color: 'rgba(245,243,255,.9)',
               background: 'rgba(0,0,0,.22)', borderLeft: '1px solid rgba(167,139,250,.22)',
               position: 'relative', zIndex: 1
