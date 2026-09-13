@@ -371,7 +371,7 @@ export default function Paywall() {
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontFamily: f, fontWeight: 900, fontSize: 28, lineHeight: 1,
                   background: 'linear-gradient(160deg,#F5F3FF 30%,#A78BFA 100%)',
-                  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>€99</div>
+                  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>$99</div>
                 <div style={{ fontFamily: mono, fontSize: 7.5, color: 'rgba(255,255,255,.22)' }}>/мес</div>
               </div>
             </div>
@@ -435,7 +435,7 @@ export default function Paywall() {
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontFamily: f, fontWeight: 900, fontSize: 26, lineHeight: 1, color: BK_BLUE }}>€0</div>
                 <div style={{ fontFamily: mono, fontSize: 7, color: 'rgba(255,255,255,.22)',
-                  textDecoration: 'line-through' }}>€99</div>
+                  textDecoration: 'line-through' }}>$99</div>
               </div>
             </div>
 
