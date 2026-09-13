@@ -4,7 +4,7 @@ import { useRef, useEffect, useState } from 'react'
 import { useFunnel } from '../store/funnel'
 import { api } from '../api'
 import logoIcon from '../assets/icon_dark2.png'
-import stawkiLogo from '../assets/stawkibet.svg'
+import bkLogo from '../assets/onexbet.png'
 import { haptic } from '../haptic'
 
 const M = motion as any
@@ -13,8 +13,16 @@ const mono = "'JetBrains Mono',monospace"
 
 // Gold palette — warm, not neon
 const GOLD   = '#E8B84B'
-const GOLD_DIM = 'rgba(232,184,75,.18)'
-const GOLD_LINE = 'rgba(232,184,75,.35)'
+// GOLD_DIM / GOLD_LINE убраны 13.09.2026: их использовала только карточка
+// партнёрской БК, а она перекрашена в фирменный синий 1xBet (см. BK_* ниже).
+
+// 13.09.2026: цвета карточки партнёрской БК (1xBet) — фирменный синий с
+// официальной иконки конторы. Отдельно от GOLD: золото осталось платной
+// PRO-карточке, иначе два блока выбора слились бы в один цвет.
+const BK_BLUE      = '#4C9FE8'
+const BK_BLUE_DEEP = '#276BA6'
+const BK_DIM       = 'rgba(76,159,232,.13)'
+const BK_LINE      = 'rgba(76,159,232,.30)'
 
 function ChimeraLogo({ size = 28 }: { size?: number }) {
   return (
@@ -85,11 +93,11 @@ export default function Paywall() {
   }, [])
 
   if (isPro) {
-    // Метаданные плана: владелец / PRO бесплатный (StawkiBet) / пробный / PRO
+    // Метаданные плана: владелец / PRO бесплатный (1xBet) / пробный / PRO
     const PLAN = proPlan === 'admin'
         ? { label: 'ВЛАДЕЛЕЦ', accent: GOLD, sub: 'Полный доступ' }
       : proPlan === 'bk_free'
-        ? { label: 'PRO БЕСПЛАТНЫЙ', accent: GOLD, sub: 'от StawkiBet' }
+        ? { label: 'PRO БЕСПЛАТНЫЙ', accent: GOLD, sub: 'от 1xBet' }
       : proPlan === 'trial'
         ? { label: 'ПРОБНЫЙ PRO', accent: '#A78BFA', sub: 'тест-доступ' }
         : { label: 'PRO', accent: '#A78BFA', sub: 'полная подписка' }
@@ -402,30 +410,30 @@ export default function Paywall() {
           <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,.05)' }} />
         </div>
 
-        {/* ══ STAWKIBET CARD ══ */}
+        {/* ══ КАРТОЧКА БК (1xBet) ══ */}
         <M.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .19 }}
           style={{ borderRadius: 18, marginBottom: 0, overflow: 'hidden',
-            background: '#07060A', border: `1.5px solid ${GOLD_LINE}`,
-            boxShadow: `0 4px 32px rgba(232,184,75,.06)` }}>
-          <div style={{ height: 2, background: `linear-gradient(90deg,transparent,${GOLD} 30%,#F5D78A 50%,${GOLD} 70%,transparent)` }} />
+            background: '#07060A', border: `1.5px solid ${BK_LINE}`,
+            boxShadow: `0 4px 32px rgba(39,107,166,.10)` }}>
+          <div style={{ height: 2, background: `linear-gradient(90deg,transparent,${BK_BLUE} 30%,#5FB0F2 50%,${BK_BLUE} 70%,transparent)` }} />
           <div style={{ padding: '12px 14px 14px' }}>
             {/* Header row */}
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-              <img src={stawkiLogo} width={32} height={32} alt="StawkiBet"
+              <img src={bkLogo} width={32} height={32} alt="1xBet"
                 style={{ borderRadius: 8, flexShrink: 0 }} />
               <div style={{ flex: 1, marginLeft: 9 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                  <span style={{ fontFamily: f, fontWeight: 800, fontSize: 14 }}>StawkiBet</span>
+                  <span style={{ fontFamily: f, fontWeight: 800, fontSize: 14 }}>1xBet</span>
                   <span style={{ padding: '2px 6px', borderRadius: 5,
-                    background: GOLD_DIM, border: `1px solid ${GOLD_LINE}`,
-                    fontFamily: mono, fontSize: 6.5, fontWeight: 700, color: GOLD, letterSpacing: '.1em' }}>ПАРТНЁР</span>
+                    background: BK_DIM, border: `1px solid ${BK_LINE}`,
+                    fontFamily: mono, fontSize: 6.5, fontWeight: 700, color: BK_BLUE, letterSpacing: '.1em' }}>ПАРТНЁР</span>
                 </div>
                 <div style={{ fontFamily: mono, fontSize: 7, color: 'rgba(255,255,255,.26)' }}>
                   Официальный партнёр Chimera AI
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontFamily: f, fontWeight: 900, fontSize: 26, lineHeight: 1, color: GOLD }}>€0</div>
+                <div style={{ fontFamily: f, fontWeight: 900, fontSize: 26, lineHeight: 1, color: BK_BLUE }}>€0</div>
                 <div style={{ fontFamily: mono, fontSize: 7, color: 'rgba(255,255,255,.22)',
                   textDecoration: 'line-through' }}>€99</div>
               </div>
@@ -433,16 +441,16 @@ export default function Paywall() {
 
             {/* Offer — inline, no box */}
             <div style={{ marginBottom: 10, paddingBottom: 10,
-              borderBottom: `1px solid ${GOLD_DIM}` }}>
+              borderBottom: `1px solid ${BK_DIM}` }}>
               <div style={{ fontFamily: f, fontWeight: 900, fontSize: 15, lineHeight: 1.2, marginBottom: 3 }}>
-                PRO 30 дней — <span style={{ color: GOLD }}>бесплатно</span>
+                PRO 30 дней — <span style={{ color: BK_BLUE }}>бесплатно</span>
               </div>
               <div style={{ fontFamily: mono, fontSize: 8, color: 'rgba(255,255,255,.30)', marginBottom: 5 }}>
-                Зарегистрируйся + первый депозит на StawkiBet
+                Зарегистрируйся + первый депозит 3 000 ₸ на 1xBet
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{ width: 3, height: 3, borderRadius: '50%', background: GOLD, flexShrink: 0 }} />
-                <span style={{ fontFamily: mono, fontSize: 7, color: GOLD, letterSpacing: '.05em' }}>
+                <span style={{ width: 3, height: 3, borderRadius: '50%', background: BK_BLUE, flexShrink: 0 }} />
+                <span style={{ fontFamily: mono, fontSize: 7, color: BK_BLUE, letterSpacing: '.05em' }}>
                   Только для новых участников · 1 раз
                 </span>
               </div>
@@ -451,8 +459,8 @@ export default function Paywall() {
             <M.button whileTap={{ scale: .97 }} onClick={() => { haptic('heavy'); go('stawki-steps') }}
               style={{ position: 'relative', width: '100%', padding: '13px', borderRadius: 13,
                 border: 'none', cursor: 'pointer', overflow: 'hidden',
-                background: GOLD, fontFamily: f, fontWeight: 900, fontSize: 14,
-                color: '#0A0800', letterSpacing: '.01em' }}>
+                background: BK_BLUE_DEEP, fontFamily: f, fontWeight: 900, fontSize: 14,
+                color: '#FFFFFF', letterSpacing: '.01em' }}>
               <span aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none',
                 background: 'linear-gradient(105deg,transparent 28%,rgba(255,255,255,.22) 48%,rgba(255,255,255,.36) 52%,rgba(255,255,255,.22) 56%,transparent 76%)',
                 animation: 'pw-shim 2.8s ease-in-out infinite' }} />
