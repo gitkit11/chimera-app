@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useFunnel } from '../store/funnel'
 import { haptic } from '../haptic'
 import { api } from '../api'
-import bkLogo from '../assets/onexbet.png'
+import bkLogo from '../assets/onexbet.webp'
 
 const M  = motion as any
 const MA = AnimatePresence as any

@@ -3,8 +3,8 @@ import { motion } from 'framer-motion'
 import { useRef, useEffect, useState } from 'react'
 import { useFunnel } from '../store/funnel'
 import { api } from '../api'
-import logoIcon from '../assets/icon_dark2.png'
-import bkLogo from '../assets/onexbet.png'
+import logoIcon from '../assets/icon_dark2.webp'
+import bkLogo from '../assets/onexbet.webp'
 import { haptic } from '../haptic'
 
 const M = motion as any

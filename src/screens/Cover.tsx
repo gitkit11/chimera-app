@@ -2,7 +2,7 @@
 import { motion } from 'framer-motion'
 import { useFunnel } from '../store/funnel'
 import { haptic } from '../haptic'
-import iconDark from '../assets/icon_dark2.png'
+import iconDark from '../assets/icon_dark2.webp'
 
 const M = motion as any
 const f = "'Clash Display','Unbounded',sans-serif"

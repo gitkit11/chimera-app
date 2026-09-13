@@ -11,7 +11,7 @@ import cs2Icon        from '../assets/icons/cs2.svg'
 import hockeyIcon     from '../assets/icons/hockey.svg'
 import tapIcon        from '../assets/icons/tap.svg'
 import lockIcon       from '../assets/icons/lock.svg'
-import logoIcon       from '../assets/icon_dark2.png'
+import logoIcon       from '../assets/icon_dark2.webp'
 
 const SPORT_ICONS: Record<string, string> = {
   football: footballIcon, basketball: basketballIcon,

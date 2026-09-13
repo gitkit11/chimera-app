@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useFunnel } from '../store/funnel'
-import logo from '../assets/logo.png'
+import logo from '../assets/logo.webp'
 
 const LINES = [
   { text: 'Connecting to Chimera core', cls: 'wait' },

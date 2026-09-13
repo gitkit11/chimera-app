@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { useState, useRef, useEffect } from 'react'
 import { useFunnel } from '../store/funnel'
 import { haptic } from '../haptic'
-import logoIcon    from '../assets/icon_dark2.png'
+import logoIcon    from '../assets/icon_dark2.webp'
 const sniperBg      = `${import.meta.env.BASE_URL}bg/sniper_photo.png`
 const goldenCupBg   = `${import.meta.env.BASE_URL}bg/ak47_gold.png`
 const expressCarBg  = `${import.meta.env.BASE_URL}bg/express_car2.jpg`

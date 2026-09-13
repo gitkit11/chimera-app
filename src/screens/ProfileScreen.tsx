@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useFunnel } from '../store/funnel'
-import logoIcon from '../assets/icon_dark2.png'
+import logoIcon from '../assets/icon_dark2.webp'
 
 const M  = motion as any
 const MA = AnimatePresence as any

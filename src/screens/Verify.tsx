@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useFunnel } from '../store/funnel'
-import logo from '../assets/logo.png'
+import logo from '../assets/logo.webp'
 
 const M = motion as any
 const f = "'Clash Display','Unbounded',sans-serif"
