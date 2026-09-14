@@ -185,10 +185,16 @@ function ProbBars({ probs }: { probs: { label: string, pct: number, color: strin
 }
 
 // ── Line movement ─────────────────────────────────────────────────────
-function LineMoveWidget({ lm }: { lm: { open: string, curr: string, delta: string, dir: 'up'|'down', note: string } }) {
+function LineMoveWidget({ lm }: { lm: { open: string, curr: string, delta: string, dir: 'up'|'down'|'flat', note: string } }) {
+  // 14.09.2026: добавлено состояние 'flat'. Раньше при нулевой дельте
+  // направление всё равно было 'down', и карточка заявляла «линия падает,
+  // шарпы на нашей стороне» при кэфе 1.26 -> 1.26. У реальных сигналов
+  // дельта всегда 0.00, то есть это видел каждый.
+  const flat = lm.dir === 'flat'
   const good = lm.dir === 'down'
-  const col  = good ? '#10B981' : '#F97316'
-  const label = good ? 'Линия падает — шарпы на нашей стороне' : 'Линия растёт — публика против'
+  const col  = flat ? '#8B93A7' : good ? '#10B981' : '#F97316'
+  const label = flat ? 'Линия не двигалась с момента расчёта'
+    : good ? 'Линия падает — шарпы на нашей стороне' : 'Линия растёт — публика против'
   return (
     <div style={{ borderRadius: 12, overflow: 'hidden', background: 'rgba(255,255,255,.04)', border: `1px solid ${col}33` }}>
       {/* Header strip */}
@@ -204,11 +210,12 @@ function LineMoveWidget({ lm }: { lm: { open: string, curr: string, delta: strin
         {/* Was */}
         <div style={{ flex: 1 }}>
           <div style={{ fontFamily: mono, fontSize: 8, color: 'rgba(255,255,255,.3)', marginBottom: 3, letterSpacing: '.1em' }}>БЫЛО</div>
-          <div style={{ fontFamily: f, fontWeight: 700, fontSize: 18, color: 'rgba(255,255,255,.4)', textDecoration: 'line-through' }}>{lm.open}</div>
+          <div style={{ fontFamily: f, fontWeight: 700, fontSize: 18, color: 'rgba(255,255,255,.4)',
+            textDecoration: flat ? 'none' : 'line-through' }}>{lm.open}</div>
         </div>
         {/* Arrow */}
         <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '0 8px' }}>
-          <span style={{ fontSize: 20, color: col }}>{good ? '↘' : '↗'}</span>
+          <span style={{ fontSize: 20, color: col }}>{flat ? '=' : good ? '↘' : '↗'}</span>
           <span style={{ fontFamily: f, fontWeight: 900, fontSize: 13, color: col }}>{lm.delta}</span>
         </div>
         {/* Now */}
@@ -323,7 +330,7 @@ export default function SignalCards() {
     ],
     lineMove: { open: realSig.odds ? realSig.odds.toFixed(2) : base.odds,
                 curr: realSig.odds ? realSig.odds.toFixed(2) : base.odds,
-                delta: '0.00', dir: 'down' as const, note: 'Живая линия от бота' },
+                delta: '0.00', dir: 'flat' as const, note: 'Живая линия от бота' },
   } : base
 
   // ── Флип-сторона: РЕАЛЬНЫЙ разбор ВЫБРАННОГО матча (по id), не банкер ──
@@ -732,7 +739,12 @@ export default function SignalCards() {
                       // матч «менялся». Один источник правды.
                       <>
                         <div style={{ fontFamily: mono, fontSize: 8, color: 'rgba(255,255,255,.38)', letterSpacing: '.15em', marginBottom: 4 }}>{c.tag} · {c.date} · {c.time}</div>
-                        <div style={{ fontFamily: f, fontWeight: 700, fontSize: 14, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <div style={{ fontFamily: f, fontWeight: 700, fontSize: 13.5, lineHeight: 1.2,
+                          display: '-webkit-box', WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' }}>
+                          {/* 14.09.2026: имя гостя обрезалось многоточием на
+                              экране выбора бесплатного сигнала — самое неудачное
+                              место. Переносим на две строки. */}
                           {c.home} <span style={{ color: 'rgba(255,255,255,.3)', fontWeight: 400 }}>vs</span> {c.away}
                         </div>
                         <div style={{ fontFamily: mono, fontSize: 9, color: '#A78BFA', marginTop: 4 }}>

@@ -415,7 +415,12 @@ export default function CardReveal() {
                             <span style={{ fontFamily: mono, fontSize: 8.5, fontWeight: 700, color: c.win ? 'rgba(126,200,142,.9)' : 'rgba(224,92,92,.85)' }}>{c.score}</span>
                           </>}
                         </div>
-                        <div style={{ fontFamily: f, fontWeight: 700, fontSize: 14, lineHeight: 1.15, marginBottom: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <div style={{ fontFamily: f, fontWeight: 700, fontSize: 13.5, lineHeight: 1.2,
+                          marginBottom: 5, display: '-webkit-box', WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' }}>
+                          {/* 14.09.2026: было nowrap + многоточие — второе имя
+                              обрезалось («vs Lois Bo…»), и проверить прогноз
+                              было нельзя. Теперь переносится на две строки. */}
                           {c.home} <span style={{ color: 'rgba(255,255,255,.28)', fontWeight: 400 }}>vs</span> {c.away}
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>

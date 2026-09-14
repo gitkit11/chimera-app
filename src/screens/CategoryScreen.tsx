@@ -148,7 +148,7 @@ type Card = {
   homeLogo: string | null; awayLogo: string | null
   probs: { label: string; pct: number; color: string }[]
   stats: { l: string; v: string; hi?: boolean }[]
-  lineMove: { open: string; curr: string; delta: string; dir: 'up' | 'down'; note: string }
+  lineMove: { open: string; curr: string; delta: string; dir: 'up' | 'down' | 'flat'; note: string }
   agentTexts: [string, string, string]; shadow: string
   altBet: { rec: string; odds: string; ev: string; note: string }
   legs?: ExpressLeg[]; hitPct?: number; maxBet?: string; correlation?: string
@@ -223,7 +223,7 @@ function mapSignal(s: ApiSignal, cardType: 'signal' | 'total' | 'week'): Card {
             dir: (good ? 'down' : 'up') as 'down' | 'up',
             note: good ? 'Умные деньги с нами' : 'Рынок двигается против' }
         })()
-      : { open: String(s.odds), curr: String(s.odds), delta: '0.00', dir: 'down', note: 'Линия стабильна' },
+      : { open: String(s.odds), curr: String(s.odds), delta: '0.00', dir: 'flat', note: 'Линия стабильна' },
     agentTexts: [ag.statistician ?? '—', ag.scout ?? '—', ag.arbiter ?? '—'],
     shadow: cardType === 'total' ? (s.reasoning ?? ag.llama ?? '—') : (ag.llama ?? '—'),
     altBet: { rec: '—', odds: '—', ev: '—', note: 'Нет альт. ставки' },
@@ -464,8 +464,13 @@ function ProbBars({ probs }: { probs: { label: string; pct: number; color: strin
   )
 }
 
-function LineMoveWidget({ lm }: { lm: { open:string;curr:string;delta:string;dir:'up'|'down';note:string } }) {
-  const good = lm.dir==='down', col = good?'#10B981':'#F97316'
+function LineMoveWidget({ lm }: { lm: { open:string;curr:string;delta:string;dir:'up'|'down'|'flat';note:string } }) {
+  // 14.09.2026: состояние 'flat' — когда кэф не двигался. Раньше виджет в
+  // этом случае всё равно рисовал зелёную стрелку вниз и писал «шарпы на
+  // нашей стороне» при движении 0.00.
+  const flat = lm.dir==='flat'
+  const good = lm.dir==='down'
+  const col = flat?'#8B93A7':good?'#10B981':'#F97316'
   return (
     <div style={{ borderRadius:12,overflow:'hidden',background:'rgba(255,255,255,.04)',border:`1px solid ${col}33` }}>
       <div style={{ padding:'8px 14px',background:`${col}15`,display:'flex',alignItems:'center',justifyContent:'space-between' }}>
@@ -478,10 +483,10 @@ function LineMoveWidget({ lm }: { lm: { open:string;curr:string;delta:string;dir
       <div style={{ padding:'12px 14px',display:'flex',alignItems:'center' }}>
         <div style={{ flex:1 }}>
           <div style={{ fontFamily:mono,fontSize:8,color:'rgba(255,255,255,.3)',marginBottom:3,letterSpacing:'.1em' }}>БЫЛО</div>
-          <div style={{ fontFamily:f,fontWeight:700,fontSize:18,color:'rgba(255,255,255,.4)',textDecoration:'line-through' }}>{lm.open}</div>
+          <div style={{ fontFamily:f,fontWeight:700,fontSize:18,color:'rgba(255,255,255,.4)',textDecoration:flat?'none':'line-through' }}>{lm.open}</div>
         </div>
         <div style={{ flexShrink:0,display:'flex',flexDirection:'column',alignItems:'center',gap:2,padding:'0 8px' }}>
-          <span style={{ fontSize:20,color:col }}>{good?'↘':'↗'}</span>
+          <span style={{ fontSize:20,color:col }}>{flat?'=':good?'↘':'↗'}</span>
           <span style={{ fontFamily:f,fontWeight:900,fontSize:13,color:col }}>{lm.delta}</span>
         </div>
         <div style={{ flex:1,textAlign:'right' }}>
@@ -490,7 +495,8 @@ function LineMoveWidget({ lm }: { lm: { open:string;curr:string;delta:string;dir
         </div>
       </div>
       <div style={{ padding:'6px 14px 10px',fontFamily:mono,fontSize:9,color:col,opacity:.7 }}>
-        {good?'Линия падает — шарпы на нашей стороне':'Линия растёт — публика против'}
+        {flat?'Линия не двигалась с момента расчёта'
+          :good?'Линия падает — шарпы на нашей стороне':'Линия растёт — публика против'}
       </div>
     </div>
   )
