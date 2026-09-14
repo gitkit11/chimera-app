@@ -245,8 +245,22 @@ function Step2({
           Подтверди<br/><span style={{ color: GOLD }}>регистрацию</span>
         </div>
         <div style={{ fontSize: 13, color: 'rgba(255,255,255,.32)',
-          lineHeight: 1.5, fontFamily: 'sans-serif', marginBottom: 22 }}>
-          Введи ID аккаунта из личного кабинета 1xBet
+          lineHeight: 1.5, fontFamily: 'sans-serif', marginBottom: 12 }}>
+          Введи номер своего счёта в 1xBet
+        </div>
+
+        {/* Где взять номер — без этой подсказки люди застревали и писали
+            «нужна помощь с активацией» вместо того, чтобы закончить. */}
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start',
+          padding: '11px 13px', borderRadius: 12, marginBottom: 16,
+          background: GOLD_DIM, border: `1px solid ${GOLD_LINE}` }}>
+          <span style={{ fontSize: 15, flexShrink: 0, lineHeight: 1.2 }}>💡</span>
+          <div style={{ fontSize: 12, lineHeight: 1.45, color: 'rgba(255,255,255,.62)',
+            fontFamily: 'sans-serif' }}>
+            <b style={{ color: GOLD }}>Где его найти:</b> открой 1xBet → значок профиля
+            вверху → номер счёта показан первой строкой. Он же пришёл тебе в СМС
+            и на почту сразу после регистрации.
+          </div>
         </div>
 
         {/* ID field */}
@@ -255,7 +269,7 @@ function Step2({
             <span style={{ fontFamily: mono, fontSize: 7.5, fontWeight: 700,
               letterSpacing: '.14em', textTransform: 'uppercase' as const,
               color: idError ? '#F87171' : 'rgba(255,255,255,.25)' }}>
-              {idError ? `Минимум 5 цифр` : 'ID аккаунта 1xBet'}
+              {idError ? `Минимум 5 цифр` : 'Номер счёта 1xBet'}
             </span>
             <span style={{ fontFamily: mono, fontSize: 8,
               color: idValid ? GOLD : 'rgba(255,255,255,.18)' }}>
@@ -266,7 +280,7 @@ function Step2({
             <input
               value={bkId} onChange={handleChange}
               inputMode="numeric" pattern="[0-9]*"
-              placeholder="Только цифры — от 5 до 15"
+              placeholder="Например 213050173"
               autoComplete="off"
               style={{
                 width: '100%', boxSizing: 'border-box' as const,
