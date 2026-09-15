@@ -168,6 +168,27 @@ function Step1({ onNext }: { onNext: () => void }) {
             </span>
           </div>
 
+          {/* 4 — важное условие. Без него человек присылал номер СТАРОГО счёта,
+              а партнёрка засчитывает только новые регистрации по ссылке. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10,
+            padding: '8px 10px', borderRadius: 10, marginTop: 4,
+            background: 'rgba(245,158,11,.10)', border: '1px solid rgba(245,158,11,.30)' }}>
+            <div style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+              background: 'rgba(245,158,11,.14)', border: '1px solid rgba(245,158,11,.32)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                <path d="M12 3.5l9 16H3l9-16z" stroke="#F59E0B" strokeWidth="1.6" strokeLinejoin="round"/>
+                <path d="M12 10v4" stroke="#F59E0B" strokeWidth="1.8" strokeLinecap="round"/>
+                <circle cx="12" cy="16.6" r="1" fill="#F59E0B"/>
+              </svg>
+            </div>
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,.72)',
+              lineHeight: 1.35, fontFamily: 'sans-serif' }}>
+              Уже есть счёт в 1xBet? <b style={{ color: '#F59E0B' }}>Создай новый</b> —
+              старый счёт не засчитается
+            </span>
+          </div>
+
         </div>
       </div>
 
@@ -246,7 +267,8 @@ function Step2({
         </div>
         <div style={{ fontSize: 13, color: 'rgba(255,255,255,.32)',
           lineHeight: 1.5, fontFamily: 'sans-serif', marginBottom: 12 }}>
-          Введи номер своего счёта в 1xBet
+          Впиши сюда <b style={{ color: GOLD }}>ID счёта</b>, который выдал тебе 1xBet
+          при регистрации — по нему мы найдём твой депозит и включим PRO.
         </div>
 
         {/* Где взять номер — без этой подсказки люди застревали и писали
