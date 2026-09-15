@@ -97,7 +97,7 @@ export default function Paywall() {
     const PLAN = proPlan === 'admin'
         ? { label: 'ВЛАДЕЛЕЦ', accent: GOLD, sub: 'Полный доступ' }
       : proPlan === 'bk_free'
-        ? { label: 'PRO БЕСПЛАТНЫЙ', accent: GOLD, sub: 'от 1xBet' }
+        ? { label: 'PRO БЕСПЛАТНЫЙ', accent: GOLD, sub: 'через 1xBet' }
       : proPlan === 'trial'
         ? { label: 'ПРОБНЫЙ PRO', accent: '#A78BFA', sub: 'тест-доступ' }
         : { label: 'PRO', accent: '#A78BFA', sub: 'полная подписка' }
