@@ -308,6 +308,9 @@ export interface ApiExpress {
   legs: { sport: string; team1: string; team2: string; prediction: string; odds: number; color: string; matchTime?: string }[]
   totalOdds: number; confidence: number; rarity: string; isPro?: boolean; why?: string
   legsHash?: string; label?: string
+  // 16.09.2026: сервер давно отдаёт ev и hitRate, но в типе их не было —
+  // фронт рисовал на карточке заглушку «+??%» вместо настоящего числа.
+  ev?: number; hitRate?: number
 }
 
 export interface ApiStats {

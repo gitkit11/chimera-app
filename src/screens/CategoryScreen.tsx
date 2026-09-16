@@ -320,6 +320,15 @@ function mapFavorite(fv: ApiFavorite, i: number): Card {
   }
 }
 
+// Русские числительные: 1 сигнал, 2-4 сигнала, 5+ сигналов. Раньше стояло
+// «не один → сигнала», и при 14 карточках получалось «14 сигнала».
+function pluralRu(n: number, one: string, few: string, many: string): string {
+  const d = n % 10, h = n % 100
+  if (d === 1 && h !== 11) return one
+  if (d >= 2 && d <= 4 && (h < 12 || h > 14)) return few
+  return many
+}
+
 function mapExpress(e: ApiExpress): Card {
   const bgByLegs: Record<number, string> = { 2: speed210Bg, 3: speed280Bg, 4: speed340Bg }
   const conf = Math.round(e.confidence)
@@ -333,7 +342,12 @@ function mapExpress(e: ApiExpress): Card {
     home: e.legs.map(l => l.team1).join(' + '), away: '',
     rec: `×${Number(e.totalOdds).toFixed(2)}`,
     odds: String(Number(e.totalOdds).toFixed(2)),
-    ev: '+??%', score: conf,
+    // 16.09.2026: было жёстко '+??%'. Сервер отдаёт ev (например 16.8) —
+    // показываем его, а если вдруг не пришёл, ставим прочерк, а не «??».
+    ev: typeof e.ev === 'number'
+      ? `${e.ev > 0 ? '+' : ''}${e.ev.toFixed(0)}%`
+      : '—',
+    score: conf,
     rarity: RARITY_MAP[e.rarity] ?? 'rare',
     time: earliest ? legWhen(earliest) : '—', date: '—',
     bg: bgByLegs[e.legs.length] ?? speed280Bg,
@@ -1308,7 +1322,7 @@ export default function CategoryScreen() {
         </div>
         <div style={{ fontFamily:mono,fontSize:9.5,color:'rgba(255,255,255,.35)',letterSpacing:'.1em' }}>
           {isLoading ? 'Загрузка…'
-            : cards.length>0?`${cards.length} сигнал${cards.length!==1?'а':''} · Сегодня`:'Нет сигналов'}
+            : cards.length>0?`${cards.length} ${pluralRu(cards.length,'сигнал','сигнала','сигналов')} · Сегодня`:'Нет сигналов'}
         </div>
       </div>
 
